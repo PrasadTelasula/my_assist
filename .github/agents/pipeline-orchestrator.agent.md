@@ -1,15 +1,15 @@
 ---
 description: "Use when running the full image-processing pipeline: orchestrating all stages from scan to GOLD XML output, with strict per-image progression through extraction."
-# NOTE: tool ids below must match the ids your host runtime exposes. Every tool
-# the body calls is declared here so the runtime allow-list never blocks a stage.
-# - runSubagent : dispatch the named agents in `agents:`
-# - view_image  : Stage 3 transcription (orchestrator-only; not available to subagents)
-# - create_file : write transcripts / artifacts
-# - read        : read files and stage artifacts
-# - edit        : edit files in place
-# - search      : locate files / content
-# - execute     : run the pipeline scripts
-tools: ['runSubagent', 'view_image', 'create_file', 'read', 'edit', 'search', 'execute']
+# Copilot CLI custom-agent tool identifiers (the only valid values):
+#   read    : read files and stage artifacts
+#   edit    : edit/write files (transcripts, artifacts)
+#   search  : grep/glob to locate files / content
+#   execute : run the pipeline scripts (aliases: shell, Bash)
+#   agent   : dispatch the subagents listed in `agents:`
+# NOTE: `view_image` (Stage 3 transcription) is NOT a declarable CLI tool — it is a
+# host capability of the main agent context. This agent therefore assumes a
+# vision-capable host (VS Code Copilot agent mode), where `model:` below also applies.
+tools: ['agent', 'search', 'execute', 'edit', 'read']
 agents: ['image-rotation', 'classify', 'extract', 'extract-repair', 'qc-gate', 'canonicalize', 'payload-repair-identity', 'payload-repair-content', 'xml-generate']
 model: Claude Sonnet 4.5 (copilot)
 handoffs:
