@@ -8,6 +8,13 @@
       "when": 1785280352561,
       "tag": "0000_lovely_maginty",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785281067091,
+      "tag": "0001_chat-runs-events",
+      "breakpoints": true
     }
   ]
 }
