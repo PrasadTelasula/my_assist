@@ -6,4 +6,8 @@ export const queryKeys = {
   runs: ['runs'] as const,
   tools: ['tools'] as const,
   tool: (id: string) => ['tools', id] as const,
+  sprints: ['sprints'] as const,
+  tasks: (sprintId?: string) => ['tasks', sprintId ?? 'all'] as const,
+  task: (id: string) => ['task', id] as const,
+  taskActivity: (id: string) => ['task', id, 'activity'] as const,
 };

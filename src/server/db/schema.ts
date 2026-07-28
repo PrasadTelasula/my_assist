@@ -1,5 +1,8 @@
+import { sql } from 'drizzle-orm';
 import {
   bigserial,
+  check,
+  date,
   integer,
   jsonb,
   numeric,
@@ -116,6 +119,7 @@ export const runs = pgTable('runs', {
     .notNull()
     .references(() => agents.id),
   threadId: uuid('thread_id').references(() => threads.id),
+  taskId: uuid('task_id'),
   trigger: text('trigger', { enum: ['chat', 'task', 'manual', 'plan', 'critic'] }).notNull(),
   status: text('status', {
     enum: ['queued', 'running', 'succeeded', 'failed', 'aborted'],
@@ -147,6 +151,58 @@ export const runEvents = pgTable(
   (table) => [uniqueIndex('run_events_run_id_seq_idx').on(table.runId, table.seq)],
 );
 
+export const sprints = pgTable('sprints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  goal: text('goal').notNull().default(''),
+  startsOn: date('starts_on'),
+  endsOn: date('ends_on'),
+  criticAgentId: uuid('critic_agent_id').references(() => agents.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tasks = pgTable(
+  'tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sprintId: uuid('sprint_id').references(() => sprints.id),
+    title: text('title').notNull(),
+    description: text('description').notNull().default(''),
+    points: integer('points'),
+    status: text('status', { enum: ['backlog', 'in_progress', 'review', 'done'] })
+      .notNull()
+      .default('backlog'),
+    sortOrder: numeric('sort_order', { precision: 16, scale: 8 }).notNull().default('1000'),
+    assigneeUserId: uuid('assignee_user_id').references(() => users.id),
+    assigneeAgentId: uuid('assignee_agent_id').references(() => agents.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    statusChangedAt: timestamp('status_changed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'tasks_single_assignee_check',
+      sql`${table.assigneeUserId} IS NULL OR ${table.assigneeAgentId} IS NULL`,
+    ),
+  ],
+);
+
+export const taskActivity = pgTable('task_activity', {
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  taskId: uuid('task_id')
+    .notNull()
+    .references(() => tasks.id),
+  kind: text('kind', {
+    enum: ['comment', 'status_change', 'assignment', 'agent_update', 'blocked', 'review'],
+  }).notNull(),
+  body: text('body').notNull(),
+  actorUserId: uuid('actor_user_id').references(() => users.id),
+  actorAgentId: uuid('actor_agent_id').references(() => agents.id),
+  runId: uuid('run_id').references(() => runs.id),
+  meta: jsonb('meta').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type Tool = typeof tools.$inferSelect;
@@ -155,3 +211,6 @@ export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type RunEvent = typeof runEvents.$inferSelect;
+export type Sprint = typeof sprints.$inferSelect;
+export type Task = typeof tasks.$inferSelect;
+export type TaskActivity = typeof taskActivity.$inferSelect;

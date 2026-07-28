@@ -12,7 +12,7 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   loading: () => <p className="text-ink-faint p-4 text-xs">Loading editor…</p>,
 });
 
-export const TOOL_BOILERPLATE = `// A tool is a schema plus a default async function.
+const TOOL_BOILERPLATE = `// A tool is a schema plus a default async function.
 // No imports are available except '@sandbox/std' (needs the network permission).
 
 export const schema = {

@@ -13,9 +13,19 @@ interface StartRunSpec {
   trigger: 'chat' | 'task' | 'manual' | 'plan' | 'critic';
   agent: Agent;
   threadId?: string;
+  taskId?: string;
   inputText: string;
   history: { role: 'user' | 'assistant'; content: string }[];
+  /** Trigger-scoped tools (e.g. task tools) built once the run id exists. */
+  extraTools?: (runId: string) => RuntimeTool[];
+  /** Post-terminal hook for trigger-specific follow-up (e.g. board notes). */
+  onTerminal?: (runId: string, event: TerminalEvent) => Promise<void>;
 }
+
+type TerminalEvent = Extract<
+  import('@/core/events').AgentEvent,
+  { type: 'run_finished' } | { type: 'run_error' }
+>;
 
 export interface StartedRun {
   runId: string;
@@ -51,6 +61,7 @@ class RunManager {
       .values({
         agentId: agent.id,
         threadId: spec.threadId,
+        taskId: spec.taskId,
         trigger: spec.trigger,
         status: 'running',
         pinned,
@@ -62,7 +73,8 @@ class RunManager {
     const controller = new AbortController();
     this.active.set(runId, controller);
 
-    const done = this.driveRun(runId, spec, modelRef, tools, controller.signal).catch(
+    const allTools = [...tools, ...(spec.extraTools?.(runId) ?? [])];
+    const done = this.driveRun(runId, spec, modelRef, allTools, controller.signal).catch(
       async (err) => {
         await db
           .update(runs)
@@ -152,6 +164,7 @@ class RunManager {
               runId,
             });
           }
+          await spec.onTerminal?.(runId, event);
         } else if (event.type === 'run_error') {
           await db
             .update(runs)
@@ -165,6 +178,7 @@ class RunManager {
               finishedAt: new Date(),
             })
             .where(eq(runs.id, runId));
+          await spec.onTerminal?.(runId, event);
         }
       }
     } finally {

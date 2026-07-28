@@ -94,6 +94,49 @@ interface SandboxRunResult {
   stderr?: string;
 }
 
+interface SprintItem {
+  id: string;
+  name: string;
+  goal: string;
+  criticAgentId: string | null;
+  createdAt: string;
+}
+
+export type TaskStatus = 'backlog' | 'in_progress' | 'review' | 'done';
+
+export interface TaskItem {
+  id: string;
+  sprintId: string | null;
+  title: string;
+  description: string;
+  points: number | null;
+  status: TaskStatus;
+  sortOrder: string;
+  assigneeUserId: string | null;
+  assigneeAgentId: string | null;
+  updatedAt: string;
+}
+
+interface TaskPatchInput {
+  title?: string;
+  description?: string;
+  points?: number | null;
+  status?: TaskStatus;
+  sprintId?: string | null;
+  assigneeUserId?: string | null;
+  assigneeAgentId?: string | null;
+}
+
+interface ActivityItem {
+  id: number;
+  kind: 'comment' | 'status_change' | 'assignment' | 'agent_update' | 'blocked' | 'review';
+  body: string;
+  actorUserId: string | null;
+  actorAgentId: string | null;
+  runId: string | null;
+  createdAt: string;
+}
+
 export class ToolSaveError extends Error {
   constructor(
     message: string,
@@ -175,5 +218,34 @@ export const api = {
   },
   runs: {
     list: () => request<RunListItem[]>('/api/runs'),
+  },
+  sprints: {
+    list: () => request<SprintItem[]>('/api/sprints'),
+    create: (input: { name: string; goal?: string }) =>
+      request<SprintItem>('/api/sprints', { method: 'POST', body: JSON.stringify(input) }),
+    update: (id: string, input: { criticAgentId?: string | null; goal?: string; name?: string }) =>
+      request<SprintItem>(`/api/sprints/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  },
+  tasks: {
+    list: (sprintId?: string) =>
+      request<TaskItem[]>(`/api/tasks${sprintId ? `?sprintId=${sprintId}` : ''}`),
+    get: (id: string) => request<TaskItem & { latestRunId: string | null }>(`/api/tasks/${id}`),
+    create: (input: {
+      sprintId?: string | null;
+      title: string;
+      description?: string;
+      points?: number | null;
+    }) => request<TaskItem>('/api/tasks', { method: 'POST', body: JSON.stringify(input) }),
+    patch: (id: string, input: TaskPatchInput) =>
+      request<TaskItem & { runId: string | null }>(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      }),
+    activity: (id: string) => request<ActivityItem[]>(`/api/tasks/${id}/activity`),
+    comment: (id: string, body: string) =>
+      request<ActivityItem>(`/api/tasks/${id}/activity`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      }),
   },
 };
