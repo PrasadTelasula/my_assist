@@ -38,6 +38,8 @@ export default defineConfig({
           environment: 'jsdom',
           include: ['tests/components/**/*.test.tsx'],
           setupFiles: ['tests/components/setup.ts'],
+          // RTL auto-cleanup between tests hooks into the global afterEach.
+          globals: true,
         },
         resolve: { alias },
       },

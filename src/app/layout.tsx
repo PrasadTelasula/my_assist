@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 
+import { Providers } from '@/components/providers';
 import { SidebarNav } from '@/components/shell/sidebar-nav';
 
 import './globals.css';
@@ -17,10 +18,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        <div className="flex min-h-screen">
-          <SidebarNav />
-          <main className="min-w-0 flex-1">{children}</main>
-        </div>
+        <Providers>
+          <div className="flex min-h-screen">
+            <SidebarNav />
+            <main className="min-w-0 flex-1">{children}</main>
+          </div>
+        </Providers>
       </body>
     </html>
   );
