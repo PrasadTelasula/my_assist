@@ -28,6 +28,10 @@ export default defineConfig({
           // DB tests share one database; files must not interleave truncates.
           pool: 'forks',
           poolOptions: { forks: { singleFork: true } },
+          // The app's globalThis singletons (run manager, event bus) must see
+          // the same module graph in every test file — per-file isolation would
+          // let a stale singleton capture a previous file's module instances.
+          isolate: false,
         },
         resolve: { alias },
       },

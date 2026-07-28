@@ -15,6 +15,13 @@
       "when": 1785281067091,
       "tag": "0001_chat-runs-events",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785281847152,
+      "tag": "0002_tools",
+      "breakpoints": true
     }
   ]
 }

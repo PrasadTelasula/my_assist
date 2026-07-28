@@ -7,6 +7,7 @@ import { builtinTools } from '@/server/builtin-tools';
 import { db } from '@/server/db/client';
 import { type Agent, messages, type RunPinned, runs } from '@/server/db/schema';
 import { appendRunEvent } from '@/server/runs/event-store';
+import { userToolsForAgent } from '@/server/tools';
 
 interface StartRunSpec {
   trigger: 'chat' | 'task' | 'manual' | 'plan' | 'critic';
@@ -38,7 +39,7 @@ class RunManager {
       provider: agent.modelProvider as ModelRef['provider'],
       modelId: agent.modelId,
     };
-    const tools = builtinTools();
+    const tools = [...builtinTools(), ...(await userToolsForAgent(agent.id))];
     const pinned: RunPinned = {
       systemPrompt: agent.systemPrompt,
       model: modelRef,

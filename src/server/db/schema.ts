@@ -41,6 +41,49 @@ export const agents = pgTable('agents', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export interface ToolPermissions {
+  net: boolean;
+}
+
+export const tools = pgTable('tools', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  // Nullable to break the insert cycle: tool row first, then version, then pointer.
+  latestVersionId: uuid('latest_version_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const toolVersions = pgTable(
+  'tool_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tools.id),
+    version: integer('version').notNull(),
+    tsCode: text('ts_code').notNull(),
+    compiledJs: text('compiled_js').notNull(),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>().notNull(),
+    permissions: jsonb('permissions').$type<ToolPermissions>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('tool_versions_tool_id_version_idx').on(table.toolId, table.version)],
+);
+
+export const agentTools = pgTable(
+  'agent_tools',
+  {
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    toolId: uuid('tool_id')
+      .notNull()
+      .references(() => tools.id),
+  },
+  (table) => [uniqueIndex('agent_tools_agent_id_tool_id_idx').on(table.agentId, table.toolId)],
+);
+
 export const threads = pgTable('threads', {
   id: uuid('id').primaryKey().defaultRandom(),
   agentId: uuid('agent_id')
@@ -106,6 +149,8 @@ export const runEvents = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
+export type Tool = typeof tools.$inferSelect;
+export type ToolVersion = typeof toolVersions.$inferSelect;
 export type Thread = typeof threads.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Run = typeof runs.$inferSelect;
