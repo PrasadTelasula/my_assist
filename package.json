@@ -19,12 +19,19 @@
     "knip": "knip"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.23",
+    "@ai-sdk/google": "^4.0.27",
+    "@ai-sdk/openai": "^4.0.23",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
+    "ai": "^7.0.41",
     "drizzle-orm": "^0.44.2",
     "next": "15.5.22",
+    "ollama-ai-provider-v2": "^4.0.1",
     "postgres": "^3.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
