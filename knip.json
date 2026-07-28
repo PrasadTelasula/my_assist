@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,error,loading,not-found}.tsx",
+    "scripts/*.ts",
+    "tests/**/*.test.{ts,tsx}"
+  ],
+  "project": ["src/**", "scripts/**", "tests/**"],
+  "ignoreDependencies": ["server-only", "eslint-config-next", "postcss"]
+}

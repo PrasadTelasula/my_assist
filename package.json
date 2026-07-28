@@ -1,0 +1,50 @@
+{
+  "name": "my-assist",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d postgres",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "seed": "tsx scripts/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "knip": "knip"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.2",
+    "next": "15.5.22",
+    "postgres": "^3.4.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.54.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.5.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.22",
+    "eslint-plugin-boundaries": "^5.0.1",
+    "jsdom": "^26.1.0",
+    "knip": "^5.61.0",
+    "prettier": "^3.6.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.0",
+    "typescript": "^5",
+    "vitest": "^3.2.0"
+  }
+}

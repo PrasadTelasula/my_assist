@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — the single source of visual truth (see CONVENTIONS.md).
+ * Components consume these via Tailwind theme classes, never raw values.
+ */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8f8fb;
+  --color-surface-raised: #ffffff;
+  --color-edge: #e5e5ec;
+  --color-ink: #17171c;
+  --color-ink-muted: #6b6b76;
+  --color-ink-faint: #9b9ba6;
+
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-destructive: #dc2626;
+  --color-info: #2563eb;
+
+  --radius-control: 0.375rem; /* inputs, chips, buttons */
+  --radius-panel: 0.75rem; /* cards, dialogs, drawers */
+
+  --shadow-panel: 0 1px 3px 0 rgb(23 23 28 / 0.08);
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --color-surface: #131318;
+  --color-surface-muted: #1a1a21;
+  --color-surface-raised: #1e1e26;
+  --color-edge: #2c2c36;
+  --color-ink: #ececf1;
+  --color-ink-muted: #9b9ba6;
+  --color-ink-faint: #6b6b76;
+
+  --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.4);
+}
+
+body {
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

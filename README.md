@@ -1,0 +1,57 @@
+# my_assist
+
+Your agents, their work, in plain sight.
+
+A local-first AI agentic platform: a transparent, framework-free agent loop you
+can read in one sitting, tools you write in the browser, a live trace of every
+model call and tool invocation, and a scrum board where agents work stories
+alongside you.
+
+Inspired by [waku-agent](https://github.com/ShenSeanChen/waku-agent)'s
+"own the loop" philosophy — rebuilt as a single TypeScript app with a modern UI.
+
+## Stack
+
+- **Next.js 15** (App Router, React 19, TypeScript strict) — one app serves the
+  UI, the API, and the background run manager.
+- **Vercel AI SDK v5** for provider normalization only (Anthropic, OpenAI,
+  Google, OpenRouter, Ollama). The agent loop is ~100 lines of our own code in
+  `src/core/loop.ts`.
+- **Postgres 16** (docker-compose, port 5433) + **Drizzle ORM** with checked-in
+  SQL migrations.
+- **Vitest + Playwright** — test-driven throughout; the LLM is always faked in
+  tests.
+
+## Getting started
+
+```bash
+cp .env.example .env          # fill in provider API keys
+npm install
+npm run db:up                 # start Postgres (Docker)
+npm run db:migrate
+npm run seed                  # local user + starter agent
+npm run dev                   # http://localhost:3000
+```
+
+Useful scripts: `npm test` (Vitest), `npm run test:e2e` (Playwright),
+`npm run lint`, `npm run typecheck`, `npm run knip`.
+
+## Deployment caveat
+
+Background agent runs execute inside the Next.js Node server process. That is
+by design for local-first use (and fine on any long-lived Node host), but it
+will not survive serverless platforms that kill processes between requests.
+The cloud path is a worker queue — the DB-first event log already supports it.
+
+## Security model for user-authored tools
+
+Tools written in the browser run out-of-process in a sandboxed Node child
+(import allowlist, timeout, memory cap, process-group kill). This is a
+guardrail for code _you_ wrote on your own machine — not hostile-multi-tenant
+isolation. The cloud-hardening path is a container-based runner behind the
+same executor interface.
+
+## Conventions
+
+See [CONVENTIONS.md](./CONVENTIONS.md) — architecture boundaries, code rules,
+and UI design tokens. The mechanical rules are enforced by ESLint, knip, and CI.
