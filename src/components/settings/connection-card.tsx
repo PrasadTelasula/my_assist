@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 import { api } from '@/lib/api';
 import { type ConnectionItem } from '@/lib/types';
@@ -8,8 +9,35 @@ import { queryKeys } from '@/lib/query-keys';
 
 export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const test = useMutation({ mutationFn: () => api.providers.test(connection.id) });
+
+  // A connection alone can't be chatted with — an agent is what runs. This is
+  // the one-click bridge from "configured" to "usable".
+  const createAgent = useMutation({
+    mutationFn: async () => {
+      const probe = await api.providers.test(connection.id);
+      const modelId = probe.models[0];
+      if (!modelId) {
+        throw new Error(
+          probe.error ?? 'No models reported by this endpoint — set a model id manually instead.',
+        );
+      }
+      return api.agents.create({
+        name: `${connection.name} agent`,
+        description: `Runs on the ${connection.name} connection`,
+        systemPrompt: 'You are a helpful assistant running on a local model.',
+        modelProvider: connection.kind,
+        modelId,
+        providerConnectionId: connection.id,
+      });
+    },
+    onSuccess: (agent) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.agents });
+      router.push(`/agents/${agent.id}`);
+    },
+  });
   const remove = useMutation({
     mutationFn: () => api.providers.remove(connection.id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.providers }),
@@ -40,6 +68,14 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
         </button>
         <button
           type="button"
+          onClick={() => createAgent.mutate()}
+          disabled={createAgent.isPending}
+          className="bg-accent-600 hover:bg-accent-700 rounded-control px-2 py-1 text-xs font-medium text-white transition-colors disabled:opacity-50"
+        >
+          {createAgent.isPending ? 'Creating…' : 'Create agent'}
+        </button>
+        <button
+          type="button"
           onClick={() => remove.mutate()}
           aria-label={`Delete ${connection.name}`}
           className="text-ink-faint hover:text-destructive rounded-control px-2 py-1 text-xs transition-colors"
@@ -61,6 +97,9 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
         ) : (
           <p className="text-destructive mt-2 text-xs">{test.data.error}</p>
         )
+      ) : null}
+      {createAgent.isError ? (
+        <p className="text-destructive mt-2 text-xs">{(createAgent.error as Error).message}</p>
       ) : null}
       {remove.isError ? (
         <p className="text-destructive mt-2 text-xs">

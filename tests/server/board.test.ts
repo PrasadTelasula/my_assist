@@ -5,7 +5,7 @@ import { registerFakeModel } from '@/core/model-registry';
 import { createSprint, createTask, updateTask } from '@/server/board';
 import { assignAgentToTask } from '@/server/task-runs';
 import { db } from '@/server/db/client';
-import { agents, runEvents, runs, sprints, taskActivity, tasks } from '@/server/db/schema';
+import { agents, runs, taskActivity, tasks } from '@/server/db/schema';
 import { getCurrentUser } from '@/server/db/seed-user';
 
 import { resetDomainTables } from '../fixtures/reset-db';
@@ -78,6 +78,30 @@ describe('board', () => {
     expect(kinds).toContain('agent_update');
     expect(kinds.filter((k) => k === 'status_change').length).toBeGreaterThanOrEqual(2);
     expect(activity.find((a) => a.kind === 'agent_update')!.body).toBe('Starting on it.');
+  });
+
+  it('tells the agent how to work the card, not just the card contents', async () => {
+    registerFakeModel(() => scriptedModel([{ text: 'ok' }]));
+    const agent = await fakeAgent();
+    const sprint = await createSprint({ name: 'S1', goal: 'Ship it' });
+    const task = await createTask({
+      sprintId: sprint.id,
+      title: 'Instructed story',
+      description: 'Some detail',
+      points: 2,
+    });
+
+    const { runId, done } = (await assignAgentToTask(task.id, agent.id))!;
+    await done;
+
+    const run = await db.query.runs.findFirst({ where: eq(runs.id, runId) });
+    // Without the harness preamble a real model has no idea it should call
+    // complete_task, so the card would never reach Review.
+    expect(run!.inputText).toContain('complete_task');
+    expect(run!.inputText).toContain('post_update');
+    expect(run!.inputText).toContain('flag_blocked');
+    expect(run!.inputText).toContain('Instructed story');
+    expect(run!.inputText).toContain('Ship it');
   });
 
   it('flag_blocked leaves the card in progress with a blocked note', async () => {

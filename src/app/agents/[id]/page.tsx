@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 
 import { ModelPicker } from '@/components/agents/model-picker';
@@ -12,6 +13,7 @@ import { queryKeys } from '@/lib/query-keys';
 export default function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: agent } = useQuery({
     queryKey: queryKeys.agent(id),
     queryFn: () => api.agents.get(id),
@@ -52,11 +54,27 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     },
   });
 
+  const startChat = useMutation({
+    mutationFn: () => api.threads.create({ agentId: id, title: `Chat with ${agent?.name ?? ''}` }),
+    onSuccess: (thread) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.threads });
+      router.push(`/chat/${thread.id}`);
+    },
+  });
+
   if (!agent) return <p className="text-ink-faint p-6 text-sm">Loading agent…</p>;
 
   return (
     <>
       <PageHeader title={agent.name}>
+        <button
+          type="button"
+          onClick={() => startChat.mutate()}
+          disabled={startChat.isPending}
+          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-50"
+        >
+          {startChat.isPending ? 'Opening…' : 'Start chat'}
+        </button>
         <Link
           href={`/agents/${id}/editor`}
           className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1.5 text-sm transition-colors"

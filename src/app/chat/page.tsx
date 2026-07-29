@@ -44,9 +44,23 @@ function NewChatForm({ onDone }: { onDone: () => void }) {
         {agents?.map((agent) => (
           <option key={agent.id} value={agent.id}>
             {agent.name} · {agent.modelId}
+            {agent.connectionName ? ` (via ${agent.connectionName})` : ''}
           </option>
         ))}
       </select>
+      {agents?.length === 0 ? (
+        <p className="text-ink-faint text-xs">
+          No agents yet — create one on the{' '}
+          <Link href="/agents" className="text-accent-500 hover:underline">
+            Agents
+          </Link>{' '}
+          page, or from a connection in{' '}
+          <Link href="/settings" className="text-accent-500 hover:underline">
+            Settings
+          </Link>
+          .
+        </p>
+      ) : null}
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}

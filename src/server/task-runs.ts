@@ -118,7 +118,7 @@ export async function assignAgentToTask(
     trigger: 'task',
     agent,
     taskId,
-    inputText: await renderTaskCard({ ...task, status: 'in_progress' }),
+    inputText: `${TASK_HARNESS_PREAMBLE}\n\n${await renderTaskCard({ ...task, status: 'in_progress' })}`,
     history: [],
     extraTools: makeTaskTools(taskId, agentId, state),
     onTerminal: async (runId, event) => {

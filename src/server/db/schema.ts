@@ -49,7 +49,8 @@ export const providerConnections = pgTable('provider_connections', {
 
 export const agents = pgTable('agents', {
   id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull(),
+  // Unique so seeding is idempotent (onConflictDoNothing needs a constraint).
+  name: text('name').notNull().unique(),
   description: text('description').notNull().default(''),
   systemPrompt: text('system_prompt').notNull(),
   modelProvider: text('model_provider').notNull(),

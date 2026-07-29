@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { registerFakeModel } from '@/core/model-registry';
 import { createSprint, createTask } from '@/server/board';
 import { db } from '@/server/db/client';
-import { agents, runEvents, runs, sprints, taskActivity, tasks } from '@/server/db/schema';
+import { agents, runs, taskActivity, tasks } from '@/server/db/schema';
 import { planSprintFromGoal } from '@/server/planner';
 import { assignAgentToTask } from '@/server/task-runs';
 

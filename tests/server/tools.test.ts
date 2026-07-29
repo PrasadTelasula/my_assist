@@ -4,15 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { registerFakeModel } from '@/core/model-registry';
 import { createThread, postUserMessage } from '@/server/chat';
 import { db } from '@/server/db/client';
-import {
-  agents,
-  agentTools,
-  messages,
-  runEvents,
-  runs,
-  tools,
-  toolVersions,
-} from '@/server/db/schema';
+import { agents, agentTools, runEvents, runs, tools } from '@/server/db/schema';
 import { createTool, saveToolVersion, testRunTool } from '@/server/tools';
 
 import { resetDomainTables } from '../fixtures/reset-db';

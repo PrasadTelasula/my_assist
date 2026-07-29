@@ -43,6 +43,13 @@ const eslintConfig = [
     },
   },
   {
+    // The schema is deliberately one file: tables reference each other's columns
+    // for foreign keys, and splitting it would introduce import cycles for no
+    // readability gain. It still does the one thing its name says.
+    files: ['src/server/db/schema.ts'],
+    rules: { 'max-lines': 'off' },
+  },
+  {
     ignores: ['node_modules/**', '.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'drizzle/**'],
   },
 ];

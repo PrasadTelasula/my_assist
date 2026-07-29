@@ -122,6 +122,11 @@ export default function AgentsPage() {
               <p className="text-ink-faint mt-2 font-mono text-[11px]">
                 {agent.modelProvider}/{agent.modelId}
               </p>
+              {agent.connectionName ? (
+                <p className="text-accent-500 mt-1 font-mono text-[11px]">
+                  via {agent.connectionName}
+                </p>
+              ) : null}
             </Link>
           ))}
         </div>

@@ -1,9 +1,9 @@
-import { asc } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { createAgent } from '@/server/agents';
 import { db } from '@/server/db/client';
-import { agents } from '@/server/db/schema';
+import { agents, providerConnections } from '@/server/db/schema';
 
 const createAgentSchema = z.object({
   name: z.string().min(1).max(100),
@@ -32,8 +32,11 @@ export async function GET() {
       description: agents.description,
       modelProvider: agents.modelProvider,
       modelId: agents.modelId,
+      providerConnectionId: agents.providerConnectionId,
+      connectionName: providerConnections.name,
     })
     .from(agents)
+    .leftJoin(providerConnections, eq(agents.providerConnectionId, providerConnections.id))
     .orderBy(asc(agents.name));
   return Response.json(rows);
 }

@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ToolSaveError } from '@/lib/api';
 import { type ValidationIssue } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
+
+import { ToolTestPanel } from './tool-test-panel';
 import { useTheme } from '@/lib/use-theme';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -51,7 +53,6 @@ export function ToolEditor({
   const [description, setDescription] = useState('');
   const [allowNet, setAllowNet] = useState(false);
   const [issues, setIssues] = useState<ValidationIssue[]>([]);
-  const [testArgs, setTestArgs] = useState('{}');
   const [viewingVersion, setViewingVersion] = useState<string | null>(null);
   const monacoRef = useRef<{ monaco: MonacoLike; editor: { getModel: () => unknown } } | null>(
     null,
@@ -120,13 +121,6 @@ export function ToolEditor({
     },
     onError: (err) => {
       if (err instanceof ToolSaveError) applyMarkers(err.issues);
-    },
-  });
-
-  const test = useMutation({
-    mutationFn: async () => {
-      if (!toolId) throw new Error('Save the tool before test-running it');
-      return api.tools.testRun(toolId, JSON.parse(testArgs));
     },
   });
 
@@ -212,44 +206,7 @@ export function ToolEditor({
         ) : null}
       </div>
 
-      <aside className="border-edge bg-surface-muted flex w-80 shrink-0 flex-col gap-2 border-l p-3">
-        <h3 className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">Test run</h3>
-        <label htmlFor="test-args" className="text-ink-muted text-xs">
-          Arguments (JSON)
-        </label>
-        <textarea
-          id="test-args"
-          value={testArgs}
-          onChange={(e) => setTestArgs(e.target.value)}
-          rows={4}
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-xs"
-        />
-        <button
-          type="button"
-          onClick={() => test.mutate()}
-          disabled={test.isPending || toolId === null}
-          className="border-edge text-ink hover:border-accent-500 rounded-control border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
-        >
-          {test.isPending ? 'Running…' : 'Run in sandbox'}
-        </button>
-        {toolId === null ? (
-          <p className="text-ink-faint text-xs">Create the tool first, then test it here.</p>
-        ) : null}
-        {test.data ? (
-          <pre
-            className={`rounded-control overflow-x-auto p-2 font-mono text-xs whitespace-pre-wrap ${
-              test.data.ok ? 'bg-surface text-ink' : 'bg-destructive/10 text-destructive'
-            }`}
-          >
-            {test.data.ok
-              ? JSON.stringify(test.data.result, null, 2)
-              : `${test.data.error}${test.data.stderr ? `\n--- stderr ---\n${test.data.stderr}` : ''}`}
-          </pre>
-        ) : null}
-        {test.isError ? (
-          <p className="text-destructive text-xs">{(test.error as Error).message}</p>
-        ) : null}
-      </aside>
+      <ToolTestPanel toolId={toolId} />
     </div>
   );
 }

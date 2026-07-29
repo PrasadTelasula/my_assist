@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { registerFakeModel } from '@/core/model-registry';
 import { db } from '@/server/db/client';
-import { agents, messages, runEvents, runs } from '@/server/db/schema';
+import { agents, messages, runs } from '@/server/db/schema';
 import { createThread, postUserMessage } from '@/server/chat';
 import { listRunEventsAfter } from '@/server/runs/event-store';
 import { runManager } from '@/server/runs/run-manager';
