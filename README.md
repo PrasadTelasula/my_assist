@@ -36,6 +36,15 @@ npm run dev                   # http://localhost:3000
 Useful scripts: `npm test` (Vitest), `npm run test:e2e` (Playwright),
 `npm run lint`, `npm run typecheck`, `npm run knip`.
 
+### Try it without an API key
+
+Set `MY_ASSIST_PROVIDER=fake` before `npm run seed` and `npm run dev` to get a
+scripted **Demo** agent that works every flow deterministically — chat with a
+live trace, sprint planning from a goal, working a card to Review, and critic
+review. This is also how the Playwright suite runs in CI. (If your machine has
+a system Chromium instead of Playwright's managed browsers, point
+`PLAYWRIGHT_CHROMIUM_PATH` at it.)
+
 ## Deployment caveat
 
 Background agent runs execute inside the Next.js Node server process. That is

@@ -5,6 +5,10 @@
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  if (process.env.MY_ASSIST_PROVIDER === 'fake') {
+    const { registerDemoFakeModel } = await import('@/server/fake-model');
+    registerDemoFakeModel();
+  }
   const { runManager } = await import('@/server/runs/run-manager');
   await runManager.sweepOrphanRuns();
 }

@@ -36,3 +36,10 @@ jobs:
       - run: npm run knip
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Seed test DB for e2e (fake provider)
+        run: npx tsx scripts/migrate.ts && npx tsx scripts/seed.ts
+        env:
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/my_assist_test
+          MY_ASSIST_PROVIDER: fake
+      - run: npm run test:e2e

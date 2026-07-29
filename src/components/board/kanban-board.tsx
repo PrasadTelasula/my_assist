@@ -1,6 +1,13 @@
 'use client';
 
-import { DndContext, type DragEndEvent, useDroppable } from '@dnd-kit/core';
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 
 import type { TaskItem, TaskStatus } from '@/lib/api';
 
@@ -64,6 +71,9 @@ export function KanbanBoard({
   onOpen: (id: string) => void;
   onDragStateChange: (dragging: boolean) => void;
 }) {
+  // A small distance threshold keeps plain clicks (open drawer) out of the drag sensor.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
   const handleDragEnd = (event: DragEndEvent) => {
     onDragStateChange(false);
     const target = event.over?.id;
@@ -73,7 +83,11 @@ export function KanbanBoard({
   };
 
   return (
-    <DndContext onDragStart={() => onDragStateChange(true)} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={() => onDragStateChange(true)}
+      onDragEnd={handleDragEnd}
+    >
       <div className="flex gap-3 p-4">
         {COLUMNS.map(({ status, label }) => (
           <Column

@@ -30,6 +30,20 @@ async function main(): Promise<void> {
     ])
     .onConflictDoNothing();
 
+  // Key-free demo agent for e2e and first-run exploration.
+  if (process.env.MY_ASSIST_PROVIDER === 'fake') {
+    await db
+      .insert(agents)
+      .values({
+        name: 'Demo',
+        description: 'Key-free scripted agent (fake provider)',
+        systemPrompt: 'You are the demo agent.',
+        modelProvider: 'fake',
+        modelId: 'demo',
+      })
+      .onConflictDoNothing();
+  }
+
   console.log('seeded');
 }
 
