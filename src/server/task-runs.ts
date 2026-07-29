@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import type { RuntimeTool } from '@/core/loop';
 import { updateTask } from '@/server/board';
+import { startCriticReview } from '@/server/critic';
 import { db } from '@/server/db/client';
 import { agents, sprints, taskActivity, type Task, tasks } from '@/server/db/schema';
 import { runManager, type StartedRun } from '@/server/runs/run-manager';
@@ -121,6 +122,10 @@ export async function assignAgentToTask(
     history: [],
     extraTools: makeTaskTools(taskId, agentId, state),
     onTerminal: async (runId, event) => {
+      if (event.type === 'run_finished' && state.completed) {
+        // One critic pass per working run, after the worker has fully finished.
+        await startCriticReview(taskId);
+      }
       if (event.type === 'run_finished' && !state.completed) {
         await db.insert(taskActivity).values({
           taskId,

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 import { KanbanBoard } from '@/components/board/kanban-board';
+import { PlanFromGoalForm } from '@/components/board/plan-form';
 import { TaskDrawer } from '@/components/board/task-drawer';
 import { EmptyState } from '@/components/shell/empty-state';
 import { PageHeader } from '@/components/shell/page-header';
@@ -69,6 +70,15 @@ export default function BoardPage() {
     },
   });
 
+  const setCritic = useMutation({
+    mutationFn: (criticAgentId: string | null) =>
+      api.sprints.update(activeSprintId!, { criticAgentId }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.sprints }),
+  });
+
+  const [planning, setPlanning] = useState(false);
+  const activeSprint = sprints?.find((s) => s.id === activeSprintId);
+
   return (
     <>
       <PageHeader title="Board">
@@ -94,7 +104,42 @@ export default function BoardPage() {
         >
           New sprint
         </button>
+        {activeSprintId ? (
+          <>
+            <label className="text-ink-faint flex items-center gap-1.5 text-xs">
+              Critic
+              <select
+                value={activeSprint?.criticAgentId ?? ''}
+                onChange={(e) => setCritic.mutate(e.target.value || null)}
+                aria-label="Critic agent"
+                className="border-edge bg-surface text-ink rounded-control border px-1.5 py-1 text-xs"
+              >
+                <option value="">none</option>
+                {agents?.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => setPlanning((v) => !v)}
+              className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors"
+            >
+              Plan from goal
+            </button>
+          </>
+        ) : null}
       </PageHeader>
+
+      {planning && activeSprintId ? (
+        <PlanFromGoalForm
+          sprintId={activeSprintId}
+          agents={agents ?? []}
+          onDone={() => setPlanning(false)}
+        />
+      ) : null}
 
       {activeSprintId ? (
         <>

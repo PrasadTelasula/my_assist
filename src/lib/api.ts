@@ -225,6 +225,11 @@ export const api = {
       request<SprintItem>('/api/sprints', { method: 'POST', body: JSON.stringify(input) }),
     update: (id: string, input: { criticAgentId?: string | null; goal?: string; name?: string }) =>
       request<SprintItem>(`/api/sprints/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    plan: (id: string, input: { goal: string; agentId: string }) =>
+      request<{ runId: string }>(`/api/sprints/${id}/plan`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
   },
   tasks: {
     list: (sprintId?: string) =>

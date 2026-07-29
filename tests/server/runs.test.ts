@@ -8,6 +8,7 @@ import { createThread, postUserMessage } from '@/server/chat';
 import { listRunEventsAfter } from '@/server/runs/event-store';
 import { runManager } from '@/server/runs/run-manager';
 
+import { resetDomainTables } from '../fixtures/reset-db';
 import { scriptedModel } from '../fixtures/scripted-model';
 
 async function fakeAgent() {
@@ -25,9 +26,7 @@ async function fakeAgent() {
 
 describe('chat runs', () => {
   beforeEach(async () => {
-    await db.delete(runEvents);
-    await db.delete(messages);
-    await db.delete(runs);
+    await resetDomainTables();
   });
 
   it('persists a completed run with contiguous events and the assistant reply', async () => {

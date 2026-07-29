@@ -15,6 +15,7 @@ import {
 } from '@/server/db/schema';
 import { createTool, saveToolVersion, testRunTool } from '@/server/tools';
 
+import { resetDomainTables } from '../fixtures/reset-db';
 import { scriptedModel } from '../fixtures/scripted-model';
 
 const SHOUT_TOOL = `
@@ -31,12 +32,7 @@ export default async function run(input: { text: string }) {
 
 describe('tools', () => {
   beforeEach(async () => {
-    await db.delete(runEvents);
-    await db.delete(messages);
-    await db.delete(runs);
-    await db.delete(agentTools);
-    await db.delete(toolVersions);
-    await db.delete(tools);
+    await resetDomainTables();
   });
 
   it('creates a tool with an extracted schema and version 1', async () => {

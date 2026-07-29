@@ -8,6 +8,7 @@ import { db } from '@/server/db/client';
 import { agents, runEvents, runs, sprints, taskActivity, tasks } from '@/server/db/schema';
 import { getCurrentUser } from '@/server/db/seed-user';
 
+import { resetDomainTables } from '../fixtures/reset-db';
 import { scriptedModel } from '../fixtures/scripted-model';
 
 async function fakeAgent(name = 'Worker') {
@@ -20,11 +21,7 @@ async function fakeAgent(name = 'Worker') {
 
 describe('board', () => {
   beforeEach(async () => {
-    await db.delete(taskActivity);
-    await db.delete(runEvents);
-    await db.delete(runs);
-    await db.delete(tasks);
-    await db.delete(sprints);
+    await resetDomainTables();
   });
 
   it('rejects a task assigned to both a human and an agent', async () => {
