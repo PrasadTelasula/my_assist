@@ -22,12 +22,28 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const providerCredentials = pgTable('provider_credentials', {
+export const PROVIDER_KINDS = [
+  'anthropic',
+  'openai',
+  'google',
+  'openrouter',
+  'ollama',
+  'openai-compatible',
+] as const;
+
+/**
+ * A configured endpoint the platform can talk to — a hosted provider with a
+ * key, or a local server ('openai-compatible': anything exposing
+ * /v1/chat/completions, e.g. apfel, llama.cpp, vLLM, LM Studio).
+ * Requests are made server-side, so the local server's CORS policy is moot.
+ */
+export const providerConnections = pgTable('provider_connections', {
   id: uuid('id').primaryKey().defaultRandom(),
-  // Matches src/core model-registry provider names ('anthropic' | 'openai' | ...).
-  provider: text('provider').notNull().unique(),
-  apiKey: text('api_key').notNull(),
+  name: text('name').notNull().unique(),
+  kind: text('kind', { enum: PROVIDER_KINDS }).notNull(),
   baseUrl: text('base_url'),
+  // Local-first: stored as given. Encrypt-at-rest is a cloud TODO.
+  apiKey: text('api_key'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -38,6 +54,8 @@ export const agents = pgTable('agents', {
   systemPrompt: text('system_prompt').notNull(),
   modelProvider: text('model_provider').notNull(),
   modelId: text('model_id').notNull(),
+  // When set, credentials and base URL come from the connection instead of env.
+  providerConnectionId: uuid('provider_connection_id').references(() => providerConnections.id),
   maxIterations: integer('max_iterations').notNull().default(20),
   costCeilingUsd: numeric('cost_ceiling_usd', { precision: 10, scale: 4 }).notNull().default('1.0'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -205,6 +223,7 @@ export const taskActivity = pgTable('task_activity', {
 
 export type User = typeof users.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
+export type ProviderConnection = typeof providerConnections.$inferSelect;
 export type Tool = typeof tools.$inferSelect;
 export type ToolVersion = typeof toolVersions.$inferSelect;
 export type Thread = typeof threads.$inferSelect;

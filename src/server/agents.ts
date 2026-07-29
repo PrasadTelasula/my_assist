@@ -11,6 +11,7 @@ interface AgentInput {
   modelId: string;
   maxIterations?: number;
   costCeilingUsd?: number;
+  providerConnectionId?: string | null;
 }
 
 export async function createAgent(input: AgentInput): Promise<Agent> {

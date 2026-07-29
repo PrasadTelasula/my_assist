@@ -22,6 +22,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     systemPrompt: '',
     modelProvider: 'anthropic',
     modelId: '',
+    providerConnectionId: null as string | null,
     maxIterations: 20,
     costCeilingUsd: 1,
   });
@@ -33,6 +34,7 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
       systemPrompt: agent.systemPrompt,
       modelProvider: agent.modelProvider,
       modelId: agent.modelId,
+      providerConnectionId: agent.providerConnectionId,
       maxIterations: agent.maxIterations,
       costCeilingUsd: Number(agent.costCeilingUsd),
     });
@@ -91,10 +93,16 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
         <section className="flex flex-col gap-1.5">
           <span className="text-ink text-sm font-medium">Model</span>
           <ModelPicker
+            connectionId={form.providerConnectionId}
             provider={form.modelProvider}
             modelId={form.modelId}
-            onChange={({ provider, modelId }) =>
-              setForm({ ...form, modelProvider: provider, modelId })
+            onChange={({ connectionId, provider, modelId }) =>
+              setForm({
+                ...form,
+                providerConnectionId: connectionId,
+                modelProvider: provider,
+                modelId,
+              })
             }
           />
         </section>

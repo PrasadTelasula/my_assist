@@ -37,6 +37,11 @@ export function resolveModel(ref: ModelRef, credential: ProviderCredential = {})
       return createOpenRouter({ apiKey, baseURL: baseUrl })(ref.modelId);
     case 'ollama':
       return createOllama({ baseURL: baseUrl })(ref.modelId);
+    case 'openai-compatible':
+      // .chat() targets /v1/chat/completions — local servers rarely implement
+      // the Responses API the default OpenAI entry point would use. The key is
+      // a placeholder because most local servers accept any (or no) token.
+      return createOpenAI({ apiKey: apiKey ?? 'local', baseURL: baseUrl }).chat(ref.modelId);
     case 'fake': {
       if (!fakeModelFactory) {
         throw new Error('No fake model registered — call registerFakeModel() first');

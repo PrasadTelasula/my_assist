@@ -15,7 +15,11 @@ function NewAgentForm({ onDone }: { onDone: () => void }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
-  const [model, setModel] = useState({ provider: 'anthropic', modelId: 'claude-sonnet-5' });
+  const [model, setModel] = useState({
+    connectionId: null as string | null,
+    provider: 'anthropic',
+    modelId: 'claude-sonnet-5',
+  });
 
   const create = useMutation({
     mutationFn: () =>
@@ -24,6 +28,7 @@ function NewAgentForm({ onDone }: { onDone: () => void }) {
         systemPrompt: `You are ${name}, a helpful, pragmatic assistant. Use your tools when they help; answer directly when they do not.`,
         modelProvider: model.provider,
         modelId: model.modelId,
+        providerConnectionId: model.connectionId,
       }),
     onSuccess: (agent) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.agents });
@@ -47,7 +52,12 @@ function NewAgentForm({ onDone }: { onDone: () => void }) {
         aria-label="Agent name"
         className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
       />
-      <ModelPicker provider={model.provider} modelId={model.modelId} onChange={setModel} />
+      <ModelPicker
+        connectionId={model.connectionId}
+        provider={model.provider}
+        modelId={model.modelId}
+        onChange={setModel}
+      />
       <div className="flex gap-2">
         <button
           type="submit"

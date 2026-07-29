@@ -2,10 +2,10 @@ import { eq, inArray } from 'drizzle-orm';
 
 import type { ModelRef } from '@/core/events';
 import { runAgentLoop, type RuntimeTool } from '@/core/loop';
-import { resolveModel } from '@/core/model-registry';
 import { builtinTools } from '@/server/builtin-tools';
 import { db } from '@/server/db/client';
 import { type Agent, messages, type RunPinned, runs } from '@/server/db/schema';
+import { resolveAgentModel } from '@/server/providers';
 import { appendRunEvent } from '@/server/runs/event-store';
 import { userToolsForAgent } from '@/server/tools';
 
@@ -33,22 +33,13 @@ export interface StartedRun {
   done: Promise<void>;
 }
 
-const ENV_KEYS: Partial<Record<ModelRef['provider'], string>> = {
-  anthropic: 'ANTHROPIC_API_KEY',
-  openai: 'OPENAI_API_KEY',
-  google: 'GOOGLE_GENERATIVE_AI_API_KEY',
-  openrouter: 'OPENROUTER_API_KEY',
-};
-
 class RunManager {
   private active = new Map<string, AbortController>();
 
   async startRun(spec: StartRunSpec): Promise<StartedRun> {
     const { agent } = spec;
-    const modelRef: ModelRef = {
-      provider: agent.modelProvider as ModelRef['provider'],
-      modelId: agent.modelId,
-    };
+    // Resolved once: the run is pinned to this model for its whole lifetime.
+    const { modelRef, model } = await resolveAgentModel(agent);
     const tools = [...builtinTools(), ...(await userToolsForAgent(agent.id))];
     const pinned: RunPinned = {
       systemPrompt: agent.systemPrompt,
@@ -74,7 +65,7 @@ class RunManager {
     this.active.set(runId, controller);
 
     const allTools = [...tools, ...(spec.extraTools?.(runId) ?? [])];
-    const done = this.driveRun(runId, spec, modelRef, allTools, controller.signal).catch(
+    const done = this.driveRun(runId, spec, modelRef, model, allTools, controller.signal).catch(
       async (err) => {
         await db
           .update(runs)
@@ -109,6 +100,7 @@ class RunManager {
     runId: string,
     spec: StartRunSpec,
     modelRef: ModelRef,
+    model: Awaited<ReturnType<typeof resolveAgentModel>>['model'],
     tools: RuntimeTool[],
     signal: AbortSignal,
   ): Promise<void> {
@@ -119,12 +111,6 @@ class RunManager {
 
     try {
       await append({ type: 'run_started', model: modelRef });
-
-      const envKey = ENV_KEYS[modelRef.provider];
-      const model = resolveModel(modelRef, {
-        apiKey: envKey ? process.env[envKey] : undefined,
-        baseUrl: modelRef.provider === 'ollama' ? process.env.OLLAMA_BASE_URL : undefined,
-      });
 
       const loop = runAgentLoop({
         model,

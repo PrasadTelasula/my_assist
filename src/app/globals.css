@@ -19,9 +19,10 @@
   --color-surface-muted: #f8f8fb;
   --color-surface-raised: #ffffff;
   --color-edge: #e5e5ec;
+  /* Muted/faint stay >= 4.5:1 on surface in both themes (WCAG AA body text). */
   --color-ink: #17171c;
-  --color-ink-muted: #6b6b76;
-  --color-ink-faint: #9b9ba6;
+  --color-ink-muted: #55555f;
+  --color-ink-faint: #6b6b76;
 
   --color-success: #16a34a;
   --color-warning: #d97706;
@@ -42,8 +43,8 @@
   --color-surface-raised: #1e1e26;
   --color-edge: #2c2c36;
   --color-ink: #ececf1;
-  --color-ink-muted: #9b9ba6;
-  --color-ink-faint: #6b6b76;
+  --color-ink-muted: #a8a8b3;
+  --color-ink-faint: #8b8b96;
 
   --shadow-panel: 0 1px 3px 0 rgb(0 0 0 / 0.4);
 }

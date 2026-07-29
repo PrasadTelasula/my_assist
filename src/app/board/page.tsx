@@ -8,7 +8,8 @@ import { PlanFromGoalForm } from '@/components/board/plan-form';
 import { TaskDrawer } from '@/components/board/task-drawer';
 import { EmptyState } from '@/components/shell/empty-state';
 import { PageHeader } from '@/components/shell/page-header';
-import { api, type TaskItem, type TaskStatus } from '@/lib/api';
+import { api } from '@/lib/api';
+import { type TaskItem, type TaskStatus } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
 
 export default function BoardPage() {

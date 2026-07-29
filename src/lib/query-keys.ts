@@ -1,4 +1,6 @@
 export const queryKeys = {
+  providers: ['providers'] as const,
+  providerModels: (id: string) => ['providers', id, 'models'] as const,
   agents: ['agents'] as const,
   agent: (id: string) => ['agents', id] as const,
   threads: ['threads'] as const,

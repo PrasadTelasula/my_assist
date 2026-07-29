@@ -1,141 +1,27 @@
-interface ThreadListItem {
-  id: string;
-  title: string;
-  createdAt: string;
-  agentId: string;
-  agentName: string;
-}
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  runId: string | null;
-  createdAt: string;
-}
-
-interface ThreadDetail {
-  id: string;
-  agentId: string;
-  title: string;
-  messages: ChatMessage[];
-}
-
-interface RunListItem {
-  id: string;
-  trigger: string;
-  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
-  inputText: string;
-  iterations: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalCostUsd: string | null;
-  startedAt: string;
-  finishedAt: string | null;
-  agentName: string;
-}
-
-interface AgentListItem {
-  id: string;
-  name: string;
-  description: string;
-  modelProvider: string;
-  modelId: string;
-}
-
-interface AgentDetail extends AgentListItem {
-  systemPrompt: string;
-  maxIterations: number;
-  costCeilingUsd: string;
-  toolIds: string[];
-}
-
-interface AgentInput {
-  name: string;
-  description?: string;
-  systemPrompt: string;
-  modelProvider: string;
-  modelId: string;
-  maxIterations?: number;
-  costCeilingUsd?: number;
-}
-
-interface ToolListItem {
-  id: string;
-  name: string;
-  description: string;
-  latestVersionId: string | null;
-}
-
-interface ToolVersionItem {
-  id: string;
-  version: number;
-  tsCode: string;
-  inputSchema: Record<string, unknown>;
-  permissions: { net: boolean };
-  createdAt: string;
-}
-
-interface ToolDetail extends ToolListItem {
-  versions: ToolVersionItem[];
-}
-
-export interface ValidationIssue {
-  message: string;
-  line: number;
-  column: number;
-}
-
-interface SandboxRunResult {
-  ok: boolean;
-  result?: unknown;
-  error?: string;
-  durationMs: number;
-  stderr?: string;
-}
-
-interface SprintItem {
-  id: string;
-  name: string;
-  goal: string;
-  criticAgentId: string | null;
-  createdAt: string;
-}
-
-export type TaskStatus = 'backlog' | 'in_progress' | 'review' | 'done';
-
-export interface TaskItem {
-  id: string;
-  sprintId: string | null;
-  title: string;
-  description: string;
-  points: number | null;
-  status: TaskStatus;
-  sortOrder: string;
-  assigneeUserId: string | null;
-  assigneeAgentId: string | null;
-  updatedAt: string;
-}
-
-interface TaskPatchInput {
-  title?: string;
-  description?: string;
-  points?: number | null;
-  status?: TaskStatus;
-  sprintId?: string | null;
-  assigneeUserId?: string | null;
-  assigneeAgentId?: string | null;
-}
-
-interface ActivityItem {
-  id: number;
-  kind: 'comment' | 'status_change' | 'assignment' | 'agent_update' | 'blocked' | 'review';
-  body: string;
-  actorUserId: string | null;
-  actorAgentId: string | null;
-  runId: string | null;
-  createdAt: string;
-}
+import {
+  ActivityItem,
+  AgentDetail,
+  AgentInput,
+  AgentListItem,
+  ChatMessage,
+  ConnectionInput,
+  ConnectionItem,
+  PROVIDER_KINDS,
+  ProbeResult,
+  ProviderKind,
+  RunListItem,
+  SandboxRunResult,
+  SprintItem,
+  TaskItem,
+  TaskPatchInput,
+  TaskStatus,
+  ThreadDetail,
+  ThreadListItem,
+  ToolDetail,
+  ToolListItem,
+  ToolVersionItem,
+  ValidationIssue,
+} from './types';
 
 export class ToolSaveError extends Error {
   constructor(
@@ -175,6 +61,18 @@ async function requestToolSave<T>(url: string, body: unknown): Promise<T> {
 }
 
 export const api = {
+  providers: {
+    list: () => request<ConnectionItem[]>('/api/providers'),
+    create: (input: ConnectionInput) =>
+      request<ConnectionItem>('/api/providers', { method: 'POST', body: JSON.stringify(input) }),
+    update: (id: string, input: Partial<ConnectionInput>) =>
+      request<ConnectionItem>(`/api/providers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<{ ok: boolean }>(`/api/providers/${id}`, { method: 'DELETE' }),
+    test: (id: string) => request<ProbeResult>(`/api/providers/${id}/test`, { method: 'POST' }),
+  },
   agents: {
     list: () => request<AgentListItem[]>('/api/agents'),
     get: (id: string) => request<AgentDetail>(`/api/agents/${id}`),

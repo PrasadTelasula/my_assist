@@ -3,12 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { ThemeToggle } from './theme-toggle';
+
 const links = [
   { href: '/board', label: 'Board' },
   { href: '/agents', label: 'Agents' },
   { href: '/chat', label: 'Chat' },
   { href: '/runs', label: 'Runs' },
   { href: '/ops', label: 'Ops' },
+  { href: '/settings', label: 'Settings' },
 ] as const;
 
 export function SidebarNav() {
@@ -39,6 +42,9 @@ export function SidebarNav() {
           );
         })}
       </nav>
+      <div className="mt-auto px-3 pb-3">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }

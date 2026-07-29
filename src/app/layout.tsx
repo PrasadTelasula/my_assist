@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
 import { SidebarNav } from '@/components/shell/sidebar-nav';
+import { THEME_INIT_SCRIPT } from '@/lib/theme';
 
 import './globals.css';
 
@@ -16,7 +17,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
         <Providers>
           <div className="flex min-h-screen">

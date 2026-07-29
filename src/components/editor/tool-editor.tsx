@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ToolSaveError, type ValidationIssue } from '@/lib/api';
+import { api, ToolSaveError } from '@/lib/api';
+import { type ValidationIssue } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
+import { useTheme } from '@/lib/use-theme';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -43,6 +45,7 @@ export function ToolEditor({
   onCreated: (id: string) => void;
 }) {
   const queryClient = useQueryClient();
+  const theme = useTheme();
   const [code, setCode] = useState(TOOL_BOILERPLATE);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -188,7 +191,7 @@ export function ToolEditor({
         <div className="min-h-0 flex-1">
           <MonacoEditor
             language="typescript"
-            theme="vs-dark"
+            theme={theme === 'light' ? 'vs' : 'vs-dark'}
             value={code}
             onChange={(value) => setCode(value ?? '')}
             onMount={(editor, monaco) => {

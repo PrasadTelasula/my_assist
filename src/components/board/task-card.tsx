@@ -2,7 +2,7 @@
 
 import { useDraggable } from '@dnd-kit/core';
 
-import type { TaskItem } from '@/lib/api';
+import type { TaskItem } from '@/lib/types';
 
 export function TaskCard({
   task,

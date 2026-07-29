@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 
-import type { TaskItem, TaskStatus } from '@/lib/api';
+import type { TaskItem, TaskStatus } from '@/lib/types';
 
 import { TaskCard } from './task-card';
 

@@ -1,7 +1,15 @@
 import { z } from 'zod';
 
 export const modelRefSchema = z.object({
-  provider: z.enum(['anthropic', 'openai', 'google', 'openrouter', 'ollama', 'fake']),
+  provider: z.enum([
+    'anthropic',
+    'openai',
+    'google',
+    'openrouter',
+    'ollama',
+    'openai-compatible',
+    'fake',
+  ]),
   modelId: z.string(),
 });
 export type ModelRef = z.infer<typeof modelRefSchema>;

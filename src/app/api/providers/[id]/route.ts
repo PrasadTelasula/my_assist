@@ -1,0 +1,27 @@
+import { z } from 'zod';
+
+import { PROVIDER_KINDS } from '@/server/db/schema';
+import { deleteConnection, updateConnection } from '@/server/providers';
+
+const patchConnectionSchema = z.object({
+  name: z.string().min(1).max(60).optional(),
+  kind: z.enum(PROVIDER_KINDS).optional(),
+  baseUrl: z.url().nullable().optional(),
+  apiKey: z.string().max(500).nullable().optional(),
+});
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const parsed = patchConnectionSchema.safeParse(await request.json());
+  if (!parsed.success) return Response.json({ error: parsed.error.message }, { status: 422 });
+  const updated = await updateConnection(id, parsed.data);
+  if (!updated) return Response.json({ error: 'Connection not found' }, { status: 404 });
+  const { apiKey, ...rest } = updated;
+  return Response.json({ ...rest, hasApiKey: Boolean(apiKey) });
+}
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  await deleteConnection(id);
+  return Response.json({ ok: true });
+}

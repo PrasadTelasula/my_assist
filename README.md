@@ -36,6 +36,28 @@ npm run dev                   # http://localhost:3000
 Useful scripts: `npm test` (Vitest), `npm run test:e2e` (Playwright),
 `npm run lint`, `npm run typecheck`, `npm run knip`.
 
+### Local models and self-hosted servers
+
+**Settings → Add connection** registers any endpoint the platform should talk
+to. For a local OpenAI-compatible server (apfel, llama.cpp, vLLM, LM Studio),
+choose kind `openai-compatible` and give it the `/v1` base:
+
+```
+name:     apfel-local
+kind:     openai-compatible
+base URL: http://127.0.0.1:11434/v1
+token:    (blank — most local servers need none)
+```
+
+**Test** probes `GET {base}/models` and lists what the server serves; those
+model ids then autocomplete in the agent's model picker. Point an agent at the
+connection and its runs go to your machine instead of a hosted API.
+
+Two things worth knowing: requests are made by the Next.js server process, so a
+local server with **CORS disabled and localhost-only origins works fine** — it
+never sees a browser origin. And cost shows as `$ —` for models absent from the
+pricing table, which is what you want for local inference.
+
 ### Try it without an API key
 
 Set `MY_ASSIST_PROVIDER=fake` before `npm run seed` and `npm run dev` to get a
