@@ -2,7 +2,6 @@ import { eq, inArray } from 'drizzle-orm';
 
 import type { ModelRef } from '@/core/events';
 import { runAgentLoop, type RuntimeTool } from '@/core/loop';
-import { builtinTools } from '@/server/builtin-tools';
 import { db } from '@/server/db/client';
 import { type Agent, messages, type RunPinned, runs } from '@/server/db/schema';
 import { resolveAgentModel } from '@/server/providers';
@@ -40,7 +39,8 @@ class RunManager {
     const { agent } = spec;
     // Resolved once: the run is pinned to this model for its whole lifetime.
     const { modelRef, model } = await resolveAgentModel(agent);
-    const tools = [...builtinTools(), ...(await userToolsForAgent(agent.id))];
+    // Only what the user attached — nothing is injected behind their back.
+    const tools = await userToolsForAgent(agent.id);
     const pinned: RunPinned = {
       systemPrompt: agent.systemPrompt,
       model: modelRef,

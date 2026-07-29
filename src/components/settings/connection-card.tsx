@@ -27,7 +27,8 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
       return api.agents.create({
         name: `${connection.name} agent`,
         description: `Runs on the ${connection.name} connection`,
-        systemPrompt: 'You are a helpful assistant running on a local model.',
+        systemPrompt:
+          'You are a helpful assistant. Answer the user directly and conversationally. Only call a tool if one is provided and clearly needed — never invent tool names.',
         modelProvider: connection.kind,
         modelId,
         providerConnectionId: connection.id,

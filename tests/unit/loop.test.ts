@@ -121,6 +121,28 @@ describe('runAgentLoop', () => {
     expect(finished!.finalText).toBe('recovered');
   });
 
+  it('sends no tool list at all when the agent has no tools', async () => {
+    const model = scriptedModel([{ text: 'Just chatting.' }]);
+    await collect(model, { tools: [] });
+
+    // An empty tool list still advertises tool calling; small models then
+    // invent tools. A plain conversation must look plain to the provider.
+    expect(model.doGenerateCalls[0]!.tools ?? []).toHaveLength(0);
+  });
+
+  it('names the available tools when the model invents one', async () => {
+    const model = scriptedModel([
+      { toolCalls: [{ toolName: 'hello', input: {} }] },
+      { text: 'ok' },
+    ]);
+    const events = await collect(model, { tools: [echoTool()] });
+
+    const [result] = ofType(events, 'tool_result');
+    expect(result!.isError).toBe(true);
+    expect(String(result!.output)).toContain('Unknown tool: hello');
+    expect(String(result!.output)).toContain('Available tools: echo');
+  });
+
   it('answers unknown tool calls with an error result', async () => {
     const model = scriptedModel([
       { toolCalls: [{ toolName: 'missing', input: {} }] },

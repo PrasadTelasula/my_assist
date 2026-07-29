@@ -1,6 +1,16 @@
+import { eq } from 'drizzle-orm';
+
 import { db } from '../src/server/db/client';
-import { agents, users } from '../src/server/db/schema';
+import { agents, agentTools, tools, users } from '../src/server/db/schema';
 import { LOCAL_USER_EMAIL } from '../src/server/db/seed-user';
+import { createTool } from '../src/server/tools';
+
+const GET_TIME_TOOL = `export const schema = { type: 'object', properties: {} };
+
+export default async function run() {
+  return new Date().toISOString();
+}
+`;
 
 async function main(): Promise<void> {
   await db
@@ -41,6 +51,27 @@ async function main(): Promise<void> {
         modelProvider: 'fake',
         modelId: 'demo',
       })
+      .onConflictDoNothing();
+  }
+
+  // get_time is an ordinary sandboxed tool, not a hidden built-in: agents only
+  // ever see tools someone attached to them.
+  const existing = await db.query.tools.findFirst({ where: eq(tools.name, 'get_time') });
+  const getTime =
+    existing ??
+    (await createTool({
+      name: 'get_time',
+      description: 'Get the current date and time (ISO 8601, UTC).',
+      tsCode: GET_TIME_TOOL,
+      permissions: { net: false },
+    }));
+
+  // Attach it to the agents that demonstrate tool calling.
+  const demoUsers = await db.query.agents.findMany();
+  for (const agent of demoUsers.filter((a) => a.name === 'Scout' || a.name === 'Demo')) {
+    await db
+      .insert(agentTools)
+      .values({ agentId: agent.id, toolId: getTime.id })
       .onConflictDoNothing();
   }
 

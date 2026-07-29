@@ -41,12 +41,16 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
   const { model, modelRef, system, tools, maxIterations = 20, costCeilingUsd = 1 } = opts;
   const messages = [...opts.messages];
   const toolsByName = new Map(tools.map((t) => [t.name, t]));
-  const sdkTools: ToolSet = Object.fromEntries(
-    tools.map((t) => [
-      t.name,
-      tool({ description: t.description, inputSchema: jsonSchema(t.inputSchema) }),
-    ]),
-  );
+  // An agent with no tools is a plain conversation: send no tool list at all,
+  // rather than an empty one that invites models to invent tool calls.
+  const sdkTools: ToolSet | undefined = tools.length
+    ? Object.fromEntries(
+        tools.map((t) => [
+          t.name,
+          tool({ description: t.description, inputSchema: jsonSchema(t.inputSchema) }),
+        ]),
+      )
+    : undefined;
 
   const startedAt = performance.now();
   const totals: RunTotals = { inputTokens: 0, outputTokens: 0, costUsd: 0, wallMs: 0 };
@@ -126,7 +130,10 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
       let output: unknown;
       let isError: boolean;
       if (!runtimeTool) {
-        output = `Unknown tool: ${call.toolName}`;
+        // Name what exists — a model that invented a tool otherwise apologizes
+        // and guesses again, burning iterations.
+        const available = tools.map((t) => t.name).join(', ') || 'none';
+        output = `Unknown tool: ${call.toolName}. Available tools: ${available}. Answer directly instead.`;
         isError = true;
       } else {
         try {
