@@ -4,21 +4,34 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 
+import { envSource } from './load-env';
+
 /** Turns a connection refusal into instructions instead of a stack trace. */
 export function explainDbError(err: unknown, url: string): string {
   const cause = (err as { cause?: { code?: string } })?.cause;
   if (cause?.code !== 'ECONNREFUSED') return err instanceof Error ? err.message : String(err);
 
+  const fromShell = envSource('DATABASE_URL') === 'shell';
   const port = new URL(url).port || '5432';
-  return [
-    `Cannot reach Postgres at ${new URL(url).host} (from DATABASE_URL).`,
-    '',
-    port === '5433'
-      ? `Port 5433 was the old default — it is now 5544. Update DATABASE_URL in your .env
-  (it is gitignored, so git pull does not change it), or set POSTGRES_PORT=5433
-  to keep your existing container.`
-      : 'Start it with `npm run db:up`, or point DATABASE_URL at a running server.',
-  ].join('\n');
+
+  const lines = [`Cannot reach Postgres at ${new URL(url).host}.`, ''];
+  if (fromShell) {
+    // An exported variable silently beats .env — the most confusing failure here.
+    lines.push(
+      'DATABASE_URL is exported in your shell, which overrides .env. Run',
+      '  unset DATABASE_URL DATABASE_URL_TEST',
+      'to use the values from .env instead (or open a new terminal).',
+    );
+  } else if (port === '5433') {
+    lines.push(
+      'Port 5433 was the old default — it is now 5544. Update DATABASE_URL in your',
+      '.env (it is gitignored, so git pull does not change it), or set',
+      'POSTGRES_PORT=5433 to keep your existing container.',
+    );
+  } else {
+    lines.push('Start it with `npm run db:up`, or point DATABASE_URL at a running server.');
+  }
+  return lines.join('\n');
 }
 
 export async function runMigrations(databaseUrl?: string): Promise<void> {
