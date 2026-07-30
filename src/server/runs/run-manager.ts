@@ -1,7 +1,7 @@
 import { eq, inArray } from 'drizzle-orm';
 
 import type { ModelRef } from '@/core/events';
-import { runAgentLoop, type RuntimeTool } from '@/core/loop';
+import { runAgentLoop, type RuntimeTool, type ToolMode } from '@/core/loop';
 import { db } from '@/server/db/client';
 import { type Agent, messages, type RunPinned, runs } from '@/server/db/schema';
 import { resolveAgentModel } from '@/server/providers';
@@ -38,7 +38,7 @@ class RunManager {
   async startRun(spec: StartRunSpec): Promise<StartedRun> {
     const { agent } = spec;
     // Resolved once: the run is pinned to this model for its whole lifetime.
-    const { modelRef, model } = await resolveAgentModel(agent);
+    const { modelRef, model, toolMode } = await resolveAgentModel(agent);
     // Only what the user attached — nothing is injected behind their back.
     const tools = await userToolsForAgent(agent.id);
     const pinned: RunPinned = {
@@ -65,18 +65,24 @@ class RunManager {
     this.active.set(runId, controller);
 
     const allTools = [...tools, ...(spec.extraTools?.(runId) ?? [])];
-    const done = this.driveRun(runId, spec, modelRef, model, allTools, controller.signal).catch(
-      async (err) => {
-        await db
-          .update(runs)
-          .set({
-            status: 'failed',
-            error: err instanceof Error ? err.message : String(err),
-            finishedAt: new Date(),
-          })
-          .where(eq(runs.id, runId));
-      },
-    );
+    const done = this.driveRun({
+      runId,
+      spec,
+      modelRef,
+      model,
+      toolMode,
+      tools: allTools,
+      signal: controller.signal,
+    }).catch(async (err) => {
+      await db
+        .update(runs)
+        .set({
+          status: 'failed',
+          error: err instanceof Error ? err.message : String(err),
+          finishedAt: new Date(),
+        })
+        .where(eq(runs.id, runId));
+    });
 
     return { runId, done };
   }
@@ -96,14 +102,16 @@ class RunManager {
       .where(inArray(runs.status, ['queued', 'running']));
   }
 
-  private async driveRun(
-    runId: string,
-    spec: StartRunSpec,
-    modelRef: ModelRef,
-    model: Awaited<ReturnType<typeof resolveAgentModel>>['model'],
-    tools: RuntimeTool[],
-    signal: AbortSignal,
-  ): Promise<void> {
+  private async driveRun(opts: {
+    runId: string;
+    spec: StartRunSpec;
+    modelRef: ModelRef;
+    model: Awaited<ReturnType<typeof resolveAgentModel>>['model'];
+    toolMode: ToolMode;
+    tools: RuntimeTool[];
+    signal: AbortSignal;
+  }): Promise<void> {
+    const { runId, spec, modelRef, model, toolMode, tools, signal } = opts;
     const { agent } = spec;
     let seq = 0;
     const append = (event: Parameters<typeof appendRunEvent>[2]) =>
@@ -121,6 +129,7 @@ class RunManager {
           { role: 'user' as const, content: spec.inputText },
         ],
         tools,
+        toolMode,
         maxIterations: agent.maxIterations,
         costCeilingUsd: Number(agent.costCeilingUsd),
         signal,

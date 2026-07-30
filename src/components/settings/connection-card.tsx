@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { cardClass } from '@/components/ui/card';
+import { Select } from '@/components/ui/field';
 import { api } from '@/lib/api';
-import { type ConnectionItem } from '@/lib/types';
+import { type ConnectionItem, type ToolMode } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
 
 export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
@@ -45,6 +46,10 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
     mutationFn: () => api.providers.remove(connection.id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.providers }),
   });
+  const setToolMode = useMutation({
+    mutationFn: (toolMode: ToolMode) => api.providers.update(connection.id, { toolMode }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.providers }),
+  });
 
   return (
     <li className={`${cardClass()} p-4`}>
@@ -62,6 +67,16 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
           {connection.baseUrl ?? 'default endpoint'}
         </span>
         <div className="flex items-center gap-1.5">
+          <Select
+            value={connection.toolMode}
+            onChange={(e) => setToolMode.mutate(e.target.value as ToolMode)}
+            disabled={setToolMode.isPending}
+            aria-label={`Tool mode for ${connection.name}`}
+            className="h-7 w-auto py-0 text-xs"
+          >
+            <option value="native">native tools</option>
+            <option value="prompted">prompted tools</option>
+          </Select>
           <Button type="button" size="sm" onClick={() => test.mutate()} disabled={test.isPending}>
             {test.isPending ? 'Testing…' : 'Test'}
           </Button>
@@ -100,12 +115,25 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
             {test.data.toolCalling === 'yes' ? (
               <p className="text-success text-xs">Tool calling: confirmed.</p>
             ) : test.data.toolCalling === 'no-call' ? (
-              <p className="text-warning text-xs leading-relaxed">
-                Tool calling: no answer. It was offered one function and told to call it, and
-                replied with prose instead — either the server ignores the{' '}
-                <span className="font-mono">tools</span> parameter, or the model declined. Agents
-                here may never call a tool no matter what you attach.
-              </p>
+              <div className="text-warning flex flex-col items-start gap-2 text-xs leading-relaxed">
+                <p>
+                  Tool calling: no answer. It was offered one function and told to call it, and
+                  replied with prose instead — either the server ignores the{' '}
+                  <span className="font-mono">tools</span> parameter, or the model declined.
+                </p>
+                {connection.toolMode === 'native' ? (
+                  <p>
+                    Switch this connection to <strong>prompted tools</strong> above: the tools go in
+                    the system prompt instead, so they work on endpoints like this one.
+                  </p>
+                ) : (
+                  <p>
+                    Already on prompted tools, which needs no{' '}
+                    <span className="font-mono">tools</span> parameter — this warning is expected
+                    here, and your agents can still call tools.
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="text-ink-faint text-xs">Tool calling: could not determine.</p>
             )}

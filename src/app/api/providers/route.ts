@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PROVIDER_KINDS } from '@/server/db/schema';
+import { PROVIDER_KINDS, TOOL_MODES } from '@/server/db/schema';
 import { createConnection, listConnections } from '@/server/providers';
 
 const createConnectionSchema = z.object({
@@ -8,6 +8,7 @@ const createConnectionSchema = z.object({
   kind: z.enum(PROVIDER_KINDS),
   baseUrl: z.url().nullable().optional(),
   apiKey: z.string().max(500).nullable().optional(),
+  toolMode: z.enum(TOOL_MODES).optional(),
 });
 
 export async function GET() {

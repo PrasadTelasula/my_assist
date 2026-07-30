@@ -103,6 +103,28 @@ describe('provider connections', () => {
     expect(probe.toolCalling).toBe('no-call');
   });
 
+  it('carries the connection tool mode through to the run', async () => {
+    const connection = await createConnection({
+      name: 'prompted-endpoint',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      toolMode: 'prompted',
+    });
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        name: 'Prompted',
+        systemPrompt: 's',
+        modelProvider: 'openai-compatible',
+        modelId: 'apple-foundationmodel',
+        providerConnectionId: connection.id,
+      })
+      .returning();
+
+    expect((await resolveAgentModel(agent!)).toolMode).toBe('prompted');
+    await db.delete(agents).where(eq(agents.id, agent!.id));
+  });
+
   it('leaves the tool verdict unknown when the endpoint cannot be reached at all', async () => {
     const connection = await createConnection({
       name: 'gone',

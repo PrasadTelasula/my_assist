@@ -63,10 +63,25 @@ token:    (blank — most local servers need none)
 model ids then autocomplete in the agent's model picker. Point an agent at the
 connection and its runs go to your machine instead of a hosted API.
 
-Two things worth knowing: requests are made by the Next.js server process, so a
-local server with **CORS disabled and localhost-only origins works fine** — it
-never sees a browser origin. And cost shows as `$ —` for models absent from the
-pricing table, which is what you want for local inference.
+#### When tools don't get called
+
+Test also asks the endpoint whether it can call tools: it offers one trivial
+function with `tool_choice` forced to it, and reports `confirmed` if a
+`tool_call` comes back. Many local servers accept the `tools` parameter and
+answer in prose regardless — Apple foundation-model shims among them — so
+attaching a tool to an agent silently does nothing.
+
+For those, set the connection's tool mode to **prompted tools**. The tools are
+described in the system prompt instead, and the loop parses
+`{"tool": "…", "input": {…}}` back out of the reply and feeds the result in as
+ordinary text. It works on any chat endpoint. It is strictly worse than native
+tool calling — the model can malform the JSON, and the manifest costs prompt
+tokens — so it stays opt-in per connection rather than being a silent fallback.
+
+Two more things worth knowing: requests are made by the Next.js server process,
+so a local server with **CORS disabled and localhost-only origins works fine** —
+it never sees a browser origin. And cost shows as `$ —` for models absent from
+the pricing table, which is what you want for local inference.
 
 ### Try it without an API key
 

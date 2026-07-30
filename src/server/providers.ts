@@ -22,6 +22,7 @@ interface ConnectionInput {
   kind: ProviderConnection['kind'];
   baseUrl?: string | null;
   apiKey?: string | null;
+  toolMode?: ProviderConnection['toolMode'];
 }
 
 export async function listConnections(): Promise<ProviderConnection[]> {
@@ -181,6 +182,7 @@ export async function resolveAgentModel(agent: Agent) {
 
   return {
     modelRef,
+    toolMode: connection?.toolMode ?? 'native',
     model: resolveModel(modelRef, {
       apiKey: connection?.apiKey ?? (envKey ? process.env[envKey] : undefined),
       baseUrl: connection?.baseUrl ?? DEFAULT_BASE_URLS[provider],

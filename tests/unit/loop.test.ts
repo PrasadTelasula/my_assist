@@ -214,4 +214,73 @@ describe('runAgentLoop', () => {
     const [finished] = ofType(events, 'run_finished');
     expect(finished!.totals.costUsd).toBeNull();
   });
+
+  describe('prompted tool mode, for endpoints without native tool calling', () => {
+    it('describes the tools in the prompt and sends no tools field', async () => {
+      const model = scriptedModel([{ text: 'Nothing to do.' }]);
+      await collect(model, { tools: [echoTool()], toolMode: 'prompted' });
+
+      const call = model.doGenerateCalls[0]!;
+      expect(call.tools ?? []).toHaveLength(0);
+      const system = call.prompt.find((m) => m.role === 'system');
+      const systemText = JSON.stringify(system);
+      expect(systemText).toContain('echo');
+      expect(systemText).toContain('Echo text back');
+    });
+
+    it('parses a JSON tool call out of plain text, runs it, and feeds the result back', async () => {
+      const model = scriptedModel([
+        { text: '{"tool": "echo", "input": {"text": "hi"}}' },
+        { text: 'It echoed hi.' },
+      ]);
+      const events = await collect(model, { tools: [echoTool()], toolMode: 'prompted' });
+
+      const calls = ofType(events, 'tool_call');
+      expect(calls).toHaveLength(1);
+      expect(calls[0]!.toolName).toBe('echo');
+      expect(calls[0]!.input).toEqual({ text: 'hi' });
+
+      const results = ofType(events, 'tool_result');
+      expect(results[0]!.output).toEqual({ echoed: 'hi' });
+      expect(results[0]!.isError).toBe(false);
+
+      // The observation must reach the model as ordinary text — endpoints that
+      // lack tool calling generally reject the `tool` role too.
+      const second = JSON.stringify(model.doGenerateCalls[1]!.prompt);
+      expect(second).toContain('echoed');
+      expect(second).not.toContain('"role":"tool"');
+
+      const finished = ofType(events, 'run_finished');
+      expect(finished[0]!.finalText).toBe('It echoed hi.');
+    });
+
+    it('accepts a fenced json block, which is what most models actually emit', async () => {
+      const model = scriptedModel([
+        { text: 'Sure.\n```json\n{"tool": "echo", "input": {"text": "yo"}}\n```' },
+        { text: 'done' },
+      ]);
+      const events = await collect(model, { tools: [echoTool()], toolMode: 'prompted' });
+      expect(ofType(events, 'tool_call')[0]!.input).toEqual({ text: 'yo' });
+    });
+
+    it('treats ordinary prose as a final answer, not a malformed call', async () => {
+      const model = scriptedModel([{ text: 'The answer is 4.' }]);
+      const events = await collect(model, { tools: [echoTool()], toolMode: 'prompted' });
+
+      expect(ofType(events, 'tool_call')).toHaveLength(0);
+      expect(ofType(events, 'run_finished')[0]!.finalText).toBe('The answer is 4.');
+    });
+
+    it('tells the model what exists when it invents a tool name', async () => {
+      const model = scriptedModel([
+        { text: '{"tool": "teleport", "input": {}}' },
+        { text: 'Sorry, answering directly.' },
+      ]);
+      const events = await collect(model, { tools: [echoTool()], toolMode: 'prompted' });
+
+      const result = ofType(events, 'tool_result')[0]!;
+      expect(result.isError).toBe(true);
+      expect(String(result.output)).toContain('echo');
+    });
+  });
 });

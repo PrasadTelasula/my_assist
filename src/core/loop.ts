@@ -3,6 +3,15 @@ import type { LanguageModel, ModelMessage, ToolSet } from 'ai';
 
 import type { AgentEvent, ModelRef, RunTotals } from './events';
 import { estimateCostUsd } from './pricing';
+import { promptedTurn, toolManifest } from './prompted-tools';
+import { makeDispatcher } from './tool-dispatch';
+
+/**
+ * 'native' sends the OpenAI/Anthropic `tools` parameter. 'prompted' describes
+ * the tools in the system prompt and parses calls back out of the reply, for
+ * endpoints that do not implement tool calling at all.
+ */
+export type ToolMode = 'native' | 'prompted';
 
 export interface ToolExecutionResult {
   output: unknown;
@@ -25,6 +34,7 @@ export interface LoopOptions {
   system: string;
   messages: ModelMessage[];
   tools: RuntimeTool[];
+  toolMode?: ToolMode;
   maxIterations?: number;
   costCeilingUsd?: number;
   signal?: AbortSignal;
@@ -38,19 +48,32 @@ export interface LoopOptions {
  * in plain sight.
  */
 export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEvent> {
-  const { model, modelRef, system, tools, maxIterations = 20, costCeilingUsd = 1 } = opts;
+  const {
+    model,
+    modelRef,
+    system,
+    tools,
+    toolMode = 'native',
+    maxIterations = 20,
+    costCeilingUsd = 1,
+  } = opts;
   const messages = [...opts.messages];
   const toolsByName = new Map(tools.map((t) => [t.name, t]));
+  const prompted = toolMode === 'prompted' && tools.length > 0;
   // An agent with no tools is a plain conversation: send no tool list at all,
   // rather than an empty one that invites models to invent tool calls.
-  const sdkTools: ToolSet | undefined = tools.length
-    ? Object.fromEntries(
-        tools.map((t) => [
-          t.name,
-          tool({ description: t.description, inputSchema: jsonSchema(t.inputSchema) }),
-        ]),
-      )
-    : undefined;
+  const sdkTools: ToolSet | undefined =
+    tools.length && !prompted
+      ? Object.fromEntries(
+          tools.map((t) => [
+            t.name,
+            tool({ description: t.description, inputSchema: jsonSchema(t.inputSchema) }),
+          ]),
+        )
+      : undefined;
+  const systemPrompt = prompted ? `${system}\n\n${toolManifest(tools)}` : system;
+
+  const dispatch = makeDispatcher(tools);
 
   const startedAt = performance.now();
   const totals: RunTotals = { inputTokens: 0, outputTokens: 0, costUsd: 0, wallMs: 0 };
@@ -67,7 +90,7 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
     try {
       res = await generateText({
         model,
-        system,
+        system: systemPrompt,
         messages,
         tools: sdkTools,
         abortSignal: opts.signal,
@@ -104,6 +127,21 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
 
     messages.push(...res.response.messages);
 
+    if (prompted) {
+      const observation = yield* promptedTurn({ iteration, text: res.text, tools, dispatch });
+      if (observation === null) {
+        yield {
+          type: 'run_finished',
+          iterations: iteration + 1,
+          finalText: res.text,
+          totals: totalsNow(),
+        };
+        return;
+      }
+      messages.push({ role: 'user', content: observation });
+      continue;
+    }
+
     if (res.finishReason !== 'tool-calls') {
       yield {
         type: 'run_finished',
@@ -127,24 +165,7 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
       };
 
       const toolStart = performance.now();
-      let output: unknown;
-      let isError: boolean;
-      if (!runtimeTool) {
-        // Name what exists — a model that invented a tool otherwise apologizes
-        // and guesses again, burning iterations.
-        const available = tools.map((t) => t.name).join(', ') || 'none';
-        output = `Unknown tool: ${call.toolName}. Available tools: ${available}. Answer directly instead.`;
-        isError = true;
-      } else {
-        try {
-          const result = await runtimeTool.execute(call.input);
-          output = result.output;
-          isError = result.isError ?? false;
-        } catch (err) {
-          output = err instanceof Error ? err.message : String(err);
-          isError = true;
-        }
-      }
+      const { output, isError } = await dispatch(call.toolName, call.input);
 
       yield {
         type: 'tool_result',

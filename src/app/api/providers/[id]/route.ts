@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { PROVIDER_KINDS } from '@/server/db/schema';
+import { PROVIDER_KINDS, TOOL_MODES } from '@/server/db/schema';
 import { deleteConnection, updateConnection } from '@/server/providers';
 
 const patchConnectionSchema = z.object({
@@ -8,6 +8,7 @@ const patchConnectionSchema = z.object({
   kind: z.enum(PROVIDER_KINDS).optional(),
   baseUrl: z.url().nullable().optional(),
   apiKey: z.string().max(500).nullable().optional(),
+  toolMode: z.enum(TOOL_MODES).optional(),
 });
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {

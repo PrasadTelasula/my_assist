@@ -22,6 +22,9 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** How tools reach the model on a given endpoint. See src/core/loop.ts. */
+export const TOOL_MODES = ['native', 'prompted'] as const;
+
 export const PROVIDER_KINDS = [
   'anthropic',
   'openai',
@@ -44,6 +47,8 @@ export const providerConnections = pgTable('provider_connections', {
   baseUrl: text('base_url'),
   // Local-first: stored as given. Encrypt-at-rest is a cloud TODO.
   apiKey: text('api_key'),
+  // 'prompted' for endpoints that do not implement the `tools` parameter.
+  toolMode: text('tool_mode', { enum: TOOL_MODES }).notNull().default('native'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

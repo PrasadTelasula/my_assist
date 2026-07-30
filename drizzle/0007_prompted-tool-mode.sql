@@ -1,0 +1,1 @@
+ALTER TABLE "provider_connections" ADD COLUMN "tool_mode" text DEFAULT 'native' NOT NULL;

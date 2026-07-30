@@ -50,6 +50,13 @@
       "when": 1785362054758,
       "tag": "0006_unique-agent-name",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785387526018,
+      "tag": "0007_prompted-tool-mode",
+      "breakpoints": true
     }
   ]
 }

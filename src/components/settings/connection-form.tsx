@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cardClass } from '@/components/ui/card';
 import { Field, Select, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
-import { PROVIDER_KINDS, type ProviderKind } from '@/lib/types';
+import { PROVIDER_KINDS, type ProviderKind, type ToolMode } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
 
 const KIND_HINTS: Record<ProviderKind, string> = {
@@ -26,6 +26,7 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
   const [kind, setKind] = useState<ProviderKind>('openai-compatible');
   const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:11434/v1');
   const [apiKey, setApiKey] = useState('');
+  const [toolMode, setToolMode] = useState<ToolMode>('native');
 
   const create = useMutation({
     mutationFn: () =>
@@ -34,6 +35,7 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
         kind,
         baseUrl: baseUrl.trim() || null,
         apiKey: apiKey.trim() || null,
+        toolMode,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.providers });
@@ -97,6 +99,21 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
           placeholder="none"
           className="font-mono"
         />
+      </Field>
+
+      <Field
+        label="Tool mode"
+        hint="Native sends the tools parameter. Switch to prompted if Test reports no tool call — the tools go in the system prompt instead."
+        htmlFor="connection-tool-mode"
+      >
+        <Select
+          id="connection-tool-mode"
+          value={toolMode}
+          onChange={(e) => setToolMode(e.target.value as ToolMode)}
+        >
+          <option value="native">Native tool calling</option>
+          <option value="prompted">Prompted tool calling</option>
+        </Select>
       </Field>
 
       <div className="border-edge flex items-center gap-2 border-t pt-4">
