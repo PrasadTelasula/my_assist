@@ -26,7 +26,7 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
   const [kind, setKind] = useState<ProviderKind>('openai-compatible');
   const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:11434/v1');
   const [apiKey, setApiKey] = useState('');
-  const [toolMode, setToolMode] = useState<ToolMode>('native');
+  const [toolMode, setToolMode] = useState<ToolMode>('auto');
 
   const create = useMutation({
     mutationFn: () =>
@@ -103,7 +103,7 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
 
       <Field
         label="Tool mode"
-        hint="Native sends the tools parameter. Switch to prompted if Test reports no tool call — the tools go in the system prompt instead."
+        hint="Auto asks the endpoint once, the first time an agent here needs a tool, and remembers. Override only if you know better."
         htmlFor="connection-tool-mode"
       >
         <Select
@@ -111,8 +111,9 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
           value={toolMode}
           onChange={(e) => setToolMode(e.target.value as ToolMode)}
         >
-          <option value="native">Native tool calling</option>
-          <option value="prompted">Prompted tool calling</option>
+          <option value="auto">Auto — decide by asking the endpoint</option>
+          <option value="native">Native — send the tools parameter</option>
+          <option value="prompted">Prompted — describe tools in the prompt</option>
         </Select>
       </Field>
 

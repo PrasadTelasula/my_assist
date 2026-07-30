@@ -55,7 +55,7 @@ export async function deleteConnection(id: string): Promise<void> {
  * may ignore `tools`, or the model may simply have declined. Never report the
  * second as "unsupported"; a false accusation is worse than saying nothing.
  */
-type ToolVerdict = 'yes' | 'no-call' | 'unknown';
+type ToolVerdict = ProviderConnection['toolCalling'];
 
 interface ProbeResult {
   ok: boolean;
@@ -153,6 +153,12 @@ export async function probeConnection(id: string): Promise<ProbeResult> {
     const toolCalling: ToolVerdict = models[0]
       ? await probeToolSupport(base, connection.apiKey, models[0])
       : 'unknown';
+    if (toolCalling !== 'unknown') {
+      await db
+        .update(providerConnections)
+        .set({ toolCalling })
+        .where(eq(providerConnections.id, id));
+    }
     return { ok: true, models, toolCalling };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -166,10 +172,29 @@ export async function probeConnection(id: string): Promise<ProbeResult> {
 }
 
 /**
+ * Resolves 'auto' to a real mode. The first run that actually has tools pays
+ * for one probe; the verdict is cached on the connection so no later run does.
+ * Without tools there is nothing to decide, so nothing is spent.
+ */
+async function effectiveToolMode(
+  connection: ProviderConnection,
+  hasTools: boolean,
+): Promise<'native' | 'prompted'> {
+  if (connection.toolMode !== 'auto') return connection.toolMode;
+  if (!hasTools) return 'native';
+  if (connection.toolCalling === 'unknown') await probeConnection(connection.id);
+  const fresh = await db.query.providerConnections.findFirst({
+    where: eq(providerConnections.id, connection.id),
+  });
+  // Only a definite "it would not call one" is worth the prompted tax.
+  return fresh?.toolCalling === 'no-call' ? 'prompted' : 'native';
+}
+
+/**
  * Where an agent's credentials come from: its saved connection when it has
  * one, otherwise the environment for that provider kind.
  */
-export async function resolveAgentModel(agent: Agent) {
+export async function resolveAgentModel(agent: Agent, opts: { hasTools?: boolean } = {}) {
   const connection = agent.providerConnectionId
     ? await db.query.providerConnections.findFirst({
         where: eq(providerConnections.id, agent.providerConnectionId),
@@ -182,7 +207,9 @@ export async function resolveAgentModel(agent: Agent) {
 
   return {
     modelRef,
-    toolMode: connection?.toolMode ?? 'native',
+    toolMode: connection
+      ? await effectiveToolMode(connection, opts.hasTools ?? false)
+      : ('native' as const),
     model: resolveModel(modelRef, {
       apiKey: connection?.apiKey ?? (envKey ? process.env[envKey] : undefined),
       baseUrl: connection?.baseUrl ?? DEFAULT_BASE_URLS[provider],

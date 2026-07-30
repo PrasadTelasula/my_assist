@@ -103,6 +103,112 @@ describe('provider connections', () => {
     expect(probe.toolCalling).toBe('no-call');
   });
 
+  it('auto mode picks prompted by itself when the endpoint will not call a tool', async () => {
+    // The whole point of 'auto': the user attaches a tool and it works, with
+    // no probing, reading of verdicts, or dropdown-flipping on their part.
+    const connection = await createConnection({
+      name: 'auto-toolless',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      toolMode: 'auto',
+    });
+    let chatCalls = 0;
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('/models')) return Response.json({ data: [{ id: 'm' }] });
+      chatCalls += 1;
+      return Response.json({
+        choices: [
+          { message: { role: 'assistant', content: 'no tools here' }, finish_reason: 'stop' },
+        ],
+      });
+    });
+
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        name: 'Auto',
+        systemPrompt: 's',
+        modelProvider: 'openai-compatible',
+        modelId: 'm',
+        providerConnectionId: connection.id,
+      })
+      .returning();
+
+    expect((await resolveAgentModel(agent!, { hasTools: true })).toolMode).toBe('prompted');
+
+    // Cached on the connection: the next run must not pay for the probe again.
+    expect((await resolveAgentModel(agent!, { hasTools: true })).toolMode).toBe('prompted');
+    expect(chatCalls).toBe(1);
+
+    await db.delete(agents).where(eq(agents.id, agent!.id));
+  });
+
+  it('auto mode stays native for an endpoint that does call tools', async () => {
+    const connection = await createConnection({
+      name: 'auto-capable',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      toolMode: 'auto',
+    });
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('/models')) return Response.json({ data: [{ id: 'm' }] });
+      return Response.json({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              tool_calls: [
+                { id: 'c', type: 'function', function: { name: 'ping', arguments: '{}' } },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      });
+    });
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        name: 'AutoCapable',
+        systemPrompt: 's',
+        modelProvider: 'openai-compatible',
+        modelId: 'm',
+        providerConnectionId: connection.id,
+      })
+      .returning();
+
+    expect((await resolveAgentModel(agent!, { hasTools: true })).toolMode).toBe('native');
+    await db.delete(agents).where(eq(agents.id, agent!.id));
+  });
+
+  it('auto mode never probes when the agent has no tools to call', async () => {
+    const connection = await createConnection({
+      name: 'auto-idle',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+      toolMode: 'auto',
+    });
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      calls.push(url);
+      return Response.json({ data: [] });
+    });
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        name: 'AutoIdle',
+        systemPrompt: 's',
+        modelProvider: 'openai-compatible',
+        modelId: 'm',
+        providerConnectionId: connection.id,
+      })
+      .returning();
+
+    expect((await resolveAgentModel(agent!, { hasTools: false })).toolMode).toBe('native');
+    expect(calls).toEqual([]);
+    await db.delete(agents).where(eq(agents.id, agent!.id));
+  });
+
   it('carries the connection tool mode through to the run', async () => {
     const connection = await createConnection({
       name: 'prompted-endpoint',

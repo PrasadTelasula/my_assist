@@ -74,6 +74,14 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
             aria-label={`Tool mode for ${connection.name}`}
             className="h-7 w-auto py-0 text-xs"
           >
+            <option value="auto">
+              auto
+              {connection.toolCalling === 'no-call'
+                ? ' → prompted'
+                : connection.toolCalling === 'yes'
+                  ? ' → native'
+                  : ''}
+            </option>
             <option value="native">native tools</option>
             <option value="prompted">prompted tools</option>
           </Select>

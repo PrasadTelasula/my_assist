@@ -40,6 +40,11 @@ export interface LoopOptions {
   signal?: AbortSignal;
 }
 
+/** Some servers reject a parameters object with no `required` key at all. */
+function portableSchema(t: RuntimeTool): Record<string, unknown> {
+  return 'required' in t.inputSchema ? t.inputSchema : { ...t.inputSchema, required: [] };
+}
+
 /**
  * The agent loop. This is the whole harness: ask the model, run the tools it
  * requests, feed results back, repeat until it answers — yielding a typed
@@ -67,7 +72,7 @@ export async function* runAgentLoop(opts: LoopOptions): AsyncGenerator<AgentEven
       ? Object.fromEntries(
           tools.map((t) => [
             t.name,
-            tool({ description: t.description, inputSchema: jsonSchema(t.inputSchema) }),
+            tool({ description: t.description, inputSchema: jsonSchema(portableSchema(t)) }),
           ]),
         )
       : undefined;

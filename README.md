@@ -14,9 +14,11 @@ Inspired by [waku-agent](https://github.com/ShenSeanChen/waku-agent)'s
 
 - **Next.js 15** (App Router, React 19, TypeScript strict) — one app serves the
   UI, the API, and the background run manager.
-- **Vercel AI SDK v5** for provider normalization only (Anthropic, OpenAI,
-  Google, OpenRouter, Ollama). The agent loop is ~100 lines of our own code in
-  `src/core/loop.ts`.
+- **Vercel AI SDK v7** (`ai@7`) for provider normalization only — Anthropic,
+  OpenAI, Google, OpenRouter, Ollama, and any OpenAI-compatible server. Tools
+  are registered without an `execute`, so the SDK hands tool calls back rather
+  than running them: the agent loop is ~200 lines of our own code in
+  `src/core/loop.ts` and every dispatch happens there, in plain sight.
 - **Postgres 16** (docker-compose, port 5544) + **Drizzle ORM** with checked-in
   SQL migrations.
 - **Vitest + Playwright** — test-driven throughout; the LLM is always faked in
@@ -71,12 +73,18 @@ function with `tool_choice` forced to it, and reports `confirmed` if a
 answer in prose regardless — Apple foundation-model shims among them — so
 attaching a tool to an agent silently does nothing.
 
-For those, set the connection's tool mode to **prompted tools**. The tools are
-described in the system prompt instead, and the loop parses
+You should not have to act on that. Connections default to tool mode **auto**:
+the first run where an agent actually has a tool attached asks the endpoint
+once, caches the answer on the connection, and picks the mode itself. No probe
+is spent on agents without tools, and no later run pays for it again.
+
+When an endpoint will not call a tool, auto uses **prompted tool calling**: the
+tools are described in the system prompt, and the loop parses
 `{"tool": "…", "input": {…}}` back out of the reply and feeds the result in as
 ordinary text. It works on any chat endpoint. It is strictly worse than native
 tool calling — the model can malform the JSON, and the manifest costs prompt
-tokens — so it stays opt-in per connection rather than being a silent fallback.
+tokens — which is why auto only reaches for it on evidence. Pin a connection to
+`native` or `prompted` yourself if you know better than the probe.
 
 Two more things worth knowing: requests are made by the Next.js server process,
 so a local server with **CORS disabled and localhost-only origins works fine** —

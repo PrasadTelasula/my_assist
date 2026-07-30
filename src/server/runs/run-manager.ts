@@ -37,10 +37,13 @@ class RunManager {
 
   async startRun(spec: StartRunSpec): Promise<StartedRun> {
     const { agent } = spec;
-    // Resolved once: the run is pinned to this model for its whole lifetime.
-    const { modelRef, model, toolMode } = await resolveAgentModel(agent);
     // Only what the user attached — nothing is injected behind their back.
     const tools = await userToolsForAgent(agent.id);
+    // Resolved once: the run is pinned to this model for its whole lifetime.
+    // hasTools drives 'auto' — there is nothing to decide without them.
+    const { modelRef, model, toolMode } = await resolveAgentModel(agent, {
+      hasTools: tools.length > 0 || Boolean(spec.extraTools),
+    });
     const pinned: RunPinned = {
       systemPrompt: agent.systemPrompt,
       model: modelRef,

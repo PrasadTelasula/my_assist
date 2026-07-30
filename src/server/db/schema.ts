@@ -22,8 +22,15 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** How tools reach the model on a given endpoint. See src/core/loop.ts. */
-export const TOOL_MODES = ['native', 'prompted'] as const;
+/**
+ * How tools reach the model on a given endpoint. 'auto' resolves itself on
+ * first use by asking the endpoint, and is the default so that attaching a
+ * tool just works. See src/core/loop.ts for the two real modes.
+ */
+export const TOOL_MODES = ['auto', 'native', 'prompted'] as const;
+
+/** Cached answer to "does this endpoint honour the tools parameter?". */
+export const TOOL_VERDICTS = ['unknown', 'yes', 'no-call'] as const;
 
 export const PROVIDER_KINDS = [
   'anthropic',
@@ -48,7 +55,9 @@ export const providerConnections = pgTable('provider_connections', {
   // Local-first: stored as given. Encrypt-at-rest is a cloud TODO.
   apiKey: text('api_key'),
   // 'prompted' for endpoints that do not implement the `tools` parameter.
-  toolMode: text('tool_mode', { enum: TOOL_MODES }).notNull().default('native'),
+  toolMode: text('tool_mode', { enum: TOOL_MODES }).notNull().default('auto'),
+  // What probing found, so 'auto' costs one request per connection, not per run.
+  toolCalling: text('tool_calling', { enum: TOOL_VERDICTS }).notNull().default('unknown'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

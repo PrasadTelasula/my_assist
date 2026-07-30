@@ -153,7 +153,7 @@ export const PROVIDER_KINDS = [
 ] as const;
 export type ProviderKind = (typeof PROVIDER_KINDS)[number];
 
-export const TOOL_MODES = ['native', 'prompted'] as const;
+export const TOOL_MODES = ['auto', 'native', 'prompted'] as const;
 export type ToolMode = (typeof TOOL_MODES)[number];
 
 export interface ConnectionItem {
@@ -163,6 +163,8 @@ export interface ConnectionItem {
   baseUrl: string | null;
   hasApiKey: boolean;
   toolMode: ToolMode;
+  /** What probing found; drives what 'auto' resolves to. */
+  toolCalling: 'unknown' | 'yes' | 'no-call';
 }
 
 export interface ConnectionInput {
