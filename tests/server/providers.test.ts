@@ -46,8 +46,76 @@ describe('provider connections', () => {
 
     const probe = await probeConnection(connection.id);
 
-    expect(probe).toEqual({ ok: true, models: ['apple-foundationmodel', 'other'] });
+    expect(probe).toMatchObject({ ok: true, models: ['apple-foundationmodel', 'other'] });
     expect(calls[0]![0]).toBe('http://127.0.0.1:11434/v1/models');
+  });
+
+  it('confirms tool calling when the endpoint returns a tool_call, forcing the choice', async () => {
+    const connection = await createConnection({
+      name: 'capable',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+    });
+    vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/models')) return Response.json({ data: [{ id: 'm' }] });
+      const body = JSON.parse(String(init!.body)) as { tools?: unknown[]; tool_choice?: unknown };
+      expect(body.tools).toHaveLength(1);
+      // Forced, so the answer reflects the server, not the model's mood.
+      expect(body.tool_choice).toEqual({ type: 'function', function: { name: 'ping' } });
+      return Response.json({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              tool_calls: [
+                { id: 'c', type: 'function', function: { name: 'ping', arguments: '{}' } },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      });
+    });
+
+    const probe = await probeConnection(connection.id);
+    expect(probe.toolCalling).toBe('yes');
+  });
+
+  it('records prose as "no-call" rather than claiming the server lacks support', async () => {
+    const connection = await createConnection({
+      name: 'toolless',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+    });
+    vi.stubGlobal('fetch', async (url: string) => {
+      if (url.endsWith('/models')) return Response.json({ data: [{ id: 'm' }] });
+      return Response.json({
+        choices: [
+          {
+            message: { role: 'assistant', content: 'I cannot call tools.' },
+            finish_reason: 'stop',
+          },
+        ],
+      });
+    });
+
+    const probe = await probeConnection(connection.id);
+    expect(probe.toolCalling).toBe('no-call');
+  });
+
+  it('leaves the tool verdict unknown when the endpoint cannot be reached at all', async () => {
+    const connection = await createConnection({
+      name: 'gone',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:1/v1',
+    });
+    vi.stubGlobal('fetch', async () => {
+      throw new Error('connect ECONNREFUSED');
+    });
+
+    const probe = await probeConnection(connection.id);
+    expect(probe.ok).toBe(false);
+    expect(probe.toolCalling).toBe('unknown');
   });
 
   it('sends the token as a bearer header when one is configured', async () => {

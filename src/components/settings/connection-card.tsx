@@ -88,14 +88,28 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
 
       {test.data ? (
         test.data.ok ? (
-          <p className="text-success mt-2 text-xs">
-            Reachable · {test.data.models.length} model
-            {test.data.models.length === 1 ? '' : 's'}:{' '}
-            <span className="text-ink-muted font-mono">
-              {test.data.models.slice(0, 6).join(', ')}
-              {test.data.models.length > 6 ? ' …' : ''}
-            </span>
-          </p>
+          <div className="mt-2 flex flex-col gap-1">
+            <p className="text-success text-xs">
+              Reachable · {test.data.models.length} model
+              {test.data.models.length === 1 ? '' : 's'}:{' '}
+              <span className="text-ink-muted font-mono">
+                {test.data.models.slice(0, 6).join(', ')}
+                {test.data.models.length > 6 ? ' …' : ''}
+              </span>
+            </p>
+            {test.data.toolCalling === 'yes' ? (
+              <p className="text-success text-xs">Tool calling: confirmed.</p>
+            ) : test.data.toolCalling === 'no-call' ? (
+              <p className="text-warning text-xs leading-relaxed">
+                Tool calling: no answer. It was offered one function and told to call it, and
+                replied with prose instead — either the server ignores the{' '}
+                <span className="font-mono">tools</span> parameter, or the model declined. Agents
+                here may never call a tool no matter what you attach.
+              </p>
+            ) : (
+              <p className="text-ink-faint text-xs">Tool calling: could not determine.</p>
+            )}
+          </div>
         ) : (
           <p className="text-destructive mt-2 text-xs">{test.data.error}</p>
         )

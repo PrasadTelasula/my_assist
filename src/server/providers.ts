@@ -49,10 +49,66 @@ export async function deleteConnection(id: string): Promise<void> {
   await db.delete(providerConnections).where(eq(providerConnections.id, id));
 }
 
+/**
+ * 'yes' is definitive — a tool_call came back. 'no-call' is not: the endpoint
+ * may ignore `tools`, or the model may simply have declined. Never report the
+ * second as "unsupported"; a false accusation is worse than saying nothing.
+ */
+type ToolVerdict = 'yes' | 'no-call' | 'unknown';
+
 interface ProbeResult {
   ok: boolean;
   models: string[];
+  toolCalling: ToolVerdict;
   error?: string;
+}
+
+/**
+ * Local OpenAI-compatible servers vary wildly in whether they implement the
+ * `tools` parameter — many accept it and silently answer in prose. Attaching a
+ * tool to an agent then looks broken, so ask the endpoint directly: offer it
+ * one trivial function and see whether it comes back with a tool_call.
+ */
+async function probeToolSupport(
+  baseUrl: string,
+  apiKey: string | null,
+  modelId: string,
+): Promise<ToolVerdict> {
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        model: modelId,
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'Call the ping tool. Reply with the tool call only.' }],
+        // Forced choice, not 'auto': this asks whether the server implements
+        // tools, and must not hinge on a small model deciding it wants one.
+        tool_choice: { type: 'function', function: { name: 'ping' } },
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'ping',
+              description: 'Answers with pong. Call it whenever asked to ping.',
+              parameters: { type: 'object', properties: {}, required: [] },
+            },
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!response.ok) return 'unknown';
+    const body = (await response.json()) as {
+      choices?: { message?: { tool_calls?: unknown[] } }[];
+    };
+    return body.choices?.[0]?.message?.tool_calls?.length ? 'yes' : 'no-call';
+  } catch {
+    return 'unknown';
+  }
 }
 
 /**
@@ -64,26 +120,47 @@ export async function probeConnection(id: string): Promise<ProbeResult> {
   const connection = await db.query.providerConnections.findFirst({
     where: eq(providerConnections.id, id),
   });
-  if (!connection) return { ok: false, models: [], error: 'Connection not found' };
+  if (!connection) {
+    return { ok: false, models: [], toolCalling: 'unknown', error: 'Connection not found' };
+  }
   if (!connection.baseUrl) {
-    return { ok: false, models: [], error: 'This connection has no base URL to probe' };
+    return {
+      ok: false,
+      models: [],
+      toolCalling: 'unknown',
+      error: 'This connection has no base URL to probe',
+    };
   }
 
-  const url = `${connection.baseUrl.replace(/\/$/, '')}/models`;
+  const base = connection.baseUrl.replace(/\/$/, '');
+  const url = `${base}/models`;
   try {
     const response = await fetch(url, {
       headers: connection.apiKey ? { Authorization: `Bearer ${connection.apiKey}` } : {},
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
-      return { ok: false, models: [], error: `${url} responded ${response.status}` };
+      return {
+        ok: false,
+        models: [],
+        toolCalling: 'unknown',
+        error: `${url} responded ${response.status}`,
+      };
     }
     const body = (await response.json()) as { data?: { id?: string }[] };
     const models = (body.data ?? []).map((m) => m.id).filter((id): id is string => Boolean(id));
-    return { ok: true, models };
+    const toolCalling: ToolVerdict = models[0]
+      ? await probeToolSupport(base, connection.apiKey, models[0])
+      : 'unknown';
+    return { ok: true, models, toolCalling };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, models: [], error: `Could not reach ${url}: ${message}` };
+    return {
+      ok: false,
+      models: [],
+      toolCalling: 'unknown',
+      error: `Could not reach ${url}: ${message}`,
+    };
   }
 }
 

@@ -171,5 +171,7 @@ export interface ConnectionInput {
 export interface ProbeResult {
   ok: boolean;
   models: string[];
+  /** 'yes' is proof; 'no-call' is a hint, not a verdict. */
+  toolCalling: 'yes' | 'no-call' | 'unknown';
   error?: string;
 }
