@@ -5,6 +5,7 @@ import {
   createAgent,
   getAgentWithTools,
   listAgents,
+  NameTakenError,
   setAgentTools,
   updateAgent,
 } from '@/server/agents';
@@ -71,6 +72,20 @@ describe('agents', () => {
 
     await db.delete(agentTools).where(eq(agentTools.agentId, agent.id));
     await db.delete(agents).where(eq(agents.id, agent.id));
+  });
+
+  it('rejects a duplicate agent name with a usable message, not a driver crash', async () => {
+    const base = {
+      systemPrompt: 's',
+      modelProvider: 'fake',
+      modelId: 'scripted',
+    } as const;
+    await createAgent({ name: 'Twin', ...base });
+
+    await expect(createAgent({ name: 'Twin', ...base })).rejects.toThrow(NameTakenError);
+    await expect(createAgent({ name: 'Twin', ...base })).rejects.toThrow(/Twin/);
+
+    await db.delete(agents).where(eq(agents.name, 'Twin'));
   });
 
   it('reports how many tools each agent carries, so a toolless agent is obvious', async () => {

@@ -3,7 +3,12 @@ import { asc, eq } from 'drizzle-orm';
 import type { ModelRef } from '@/core/events';
 import { resolveModel } from '@/core/model-registry';
 import { db } from '@/server/db/client';
-import { type Agent, type ProviderConnection, providerConnections } from '@/server/db/schema';
+import {
+  type Agent,
+  agents,
+  type ProviderConnection,
+  providerConnections,
+} from '@/server/db/schema';
 
 const ENV_KEYS: Record<string, string> = {
   anthropic: 'ANTHROPIC_API_KEY',
@@ -46,7 +51,24 @@ export async function updateConnection(
   return row ?? null;
 }
 
+/** Deleting a connection out from under an agent would break its next run. */
+export class ConnectionInUseError extends Error {
+  constructor(agentNames: string[]) {
+    super(
+      `Still used by ${agentNames.join(', ')}. Point ${
+        agentNames.length === 1 ? 'that agent' : 'those agents'
+      } at another connection first.`,
+    );
+    this.name = 'ConnectionInUseError';
+  }
+}
+
 export async function deleteConnection(id: string): Promise<void> {
+  const dependents = await db
+    .select({ name: agents.name })
+    .from(agents)
+    .where(eq(agents.providerConnectionId, id));
+  if (dependents.length > 0) throw new ConnectionInUseError(dependents.map((a) => a.name));
   await db.delete(providerConnections).where(eq(providerConnections.id, id));
 }
 
@@ -65,10 +87,11 @@ interface ProbeResult {
 }
 
 /**
- * Local OpenAI-compatible servers vary wildly in whether they implement the
- * `tools` parameter — many accept it and silently answer in prose. Attaching a
- * tool to an agent then looks broken, so ask the endpoint directly: offer it
- * one trivial function and see whether it comes back with a tool_call.
+ * Local OpenAI-compatible servers vary wildly in whether tool calling works —
+ * some ignore the `tools` parameter, and some parse it while the model never
+ * volunteers a call. Both look identical to a user whose tool never fires, so
+ * probe operationally: offer one trivial function under the same `tool_choice:
+ * 'auto'` a real run uses, and see whether a tool_call comes back.
  */
 async function probeToolSupport(
   baseUrl: string,
@@ -85,10 +108,12 @@ async function probeToolSupport(
       body: JSON.stringify({
         model: modelId,
         max_tokens: 64,
-        messages: [{ role: 'user', content: 'Call the ping tool. Reply with the tool call only.' }],
-        // Forced choice, not 'auto': this asks whether the server implements
-        // tools, and must not hinge on a small model deciding it wants one.
-        tool_choice: { type: 'function', function: { name: 'ping' } },
+        messages: [{ role: 'user', content: 'Ping. Use your ping tool to do it.' }],
+        // 'auto', exactly as a real run sends it. Forcing the choice answers a
+        // different question — whether the server parses `tools` — and an
+        // endpoint that only calls a tool under duress is useless in practice,
+        // which is the thing 'auto' has to decide.
+        tool_choice: 'auto',
         tools: [
           {
             type: 'function',

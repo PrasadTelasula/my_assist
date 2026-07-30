@@ -37,15 +37,34 @@ export async function listAgents() {
     .orderBy(asc(agents.name));
 }
 
+/** Agent names are unique; a clash is a user mistake, not a server fault. */
+export class NameTakenError extends Error {
+  constructor(name: string) {
+    super(`An agent named "${name}" already exists. Pick a different name.`);
+    this.name = 'NameTakenError';
+  }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'cause' in err
+    ? (err.cause as { code?: string } | undefined)?.code === '23505'
+    : false;
+}
+
 export async function createAgent(input: AgentInput): Promise<Agent> {
-  const [agent] = await db
-    .insert(agents)
-    .values({
-      ...input,
-      costCeilingUsd: input.costCeilingUsd?.toString() ?? '1.0',
-    })
-    .returning();
-  return agent!;
+  try {
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        ...input,
+        costCeilingUsd: input.costCeilingUsd?.toString() ?? '1.0',
+      })
+      .returning();
+    return agent!;
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new NameTakenError(input.name);
+    throw err;
+  }
 }
 
 export async function updateAgent(id: string, input: Partial<AgentInput>): Promise<Agent | null> {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { createAgent, listAgents } from '@/server/agents';
+import { createAgent, listAgents, NameTakenError } from '@/server/agents';
 
 const createAgentSchema = z.object({
   name: z.string().min(1).max(100),
@@ -28,5 +28,11 @@ export async function GET() {
 export async function POST(request: Request) {
   const parsed = createAgentSchema.safeParse(await request.json());
   if (!parsed.success) return Response.json({ error: parsed.error.message }, { status: 422 });
-  return Response.json(await createAgent(parsed.data), { status: 201 });
+  try {
+    return Response.json(await createAgent(parsed.data), { status: 201 });
+  } catch (err) {
+    if (err instanceof NameTakenError)
+      return Response.json({ error: err.message }, { status: 409 });
+    throw err;
+  }
 }

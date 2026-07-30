@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { PROVIDER_KINDS, TOOL_MODES } from '@/server/db/schema';
-import { deleteConnection, updateConnection } from '@/server/providers';
+import { ConnectionInUseError, deleteConnection, updateConnection } from '@/server/providers';
 
 const patchConnectionSchema = z.object({
   name: z.string().min(1).max(60).optional(),
@@ -23,6 +23,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  await deleteConnection(id);
+  try {
+    await deleteConnection(id);
+  } catch (err) {
+    if (err instanceof ConnectionInUseError) {
+      return Response.json({ error: err.message }, { status: 409 });
+    }
+    throw err;
+  }
   return Response.json({ ok: true });
 }

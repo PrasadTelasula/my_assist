@@ -17,9 +17,15 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
   const test = useMutation({ mutationFn: () => api.providers.test(connection.id) });
 
   // A connection alone can't be chatted with — an agent is what runs. This is
-  // the one-click bridge from "configured" to "usable".
+  // the one-click bridge from "configured" to "usable", so it has to land on a
+  // usable agent every time: never a name clash, and tools already attached.
   const createAgent = useMutation({
     mutationFn: async () => {
+      const existing = (await api.agents.list()).find(
+        (a) => a.providerConnectionId === connection.id,
+      );
+      if (existing) return existing;
+
       const probe = await api.providers.test(connection.id);
       const modelId = probe.models[0];
       if (!modelId) {
@@ -27,15 +33,24 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
           probe.error ?? 'No models reported by this endpoint — set a model id manually instead.',
         );
       }
-      return api.agents.create({
+      const agent = await api.agents.create({
         name: `${connection.name} agent`,
         description: `Runs on the ${connection.name} connection`,
         systemPrompt:
-          'You are a helpful assistant. Answer the user directly and conversationally. Only call a tool if one is provided and clearly needed — never invent tool names.',
+          'You are a helpful assistant. Answer the user directly and conversationally. Use a tool whenever it can answer better than you can — never invent tool names.',
         modelProvider: connection.kind,
         modelId,
         providerConnectionId: connection.id,
       });
+      // An agent with no tools can only apologize. Start it with the library;
+      // the agent page is where you untick what you don't want.
+      const tools = await api.tools.list();
+      if (tools.length)
+        await api.agents.setTools(
+          agent.id,
+          tools.map((t) => t.id),
+        );
+      return agent;
     },
     onSuccess: (agent) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.agents });
@@ -121,22 +136,28 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
               </span>
             </p>
             {test.data.toolCalling === 'yes' ? (
-              <p className="text-success text-xs">Tool calling: confirmed.</p>
+              <p className="text-success text-xs">Tool calling: works.</p>
             ) : test.data.toolCalling === 'no-call' ? (
               <div className="text-warning flex flex-col items-start gap-2 text-xs leading-relaxed">
                 <p>
-                  Tool calling: no answer. It was offered one function and told to call it, and
-                  replied with prose instead — either the server ignores the{' '}
-                  <span className="font-mono">tools</span> parameter, or the model declined.
+                  Tool calling: not used. Offered a function and asked to use it, this endpoint
+                  answered in prose — either it ignores the <span className="font-mono">tools</span>{' '}
+                  parameter, or the model will not call one on its own. Agents here would never fire
+                  a tool in native mode.
                 </p>
-                {connection.toolMode === 'native' ? (
+                {connection.toolMode === 'auto' ? (
                   <p>
-                    Switch this connection to <strong>prompted tools</strong> above: the tools go in
-                    the system prompt instead, so they work on endpoints like this one.
+                    Nothing to do — on <strong>auto</strong> this connection now uses prompted
+                    tools, and your agents can call tools normally.
+                  </p>
+                ) : connection.toolMode === 'native' ? (
+                  <p>
+                    This connection is pinned to <strong>native tools</strong>. Switch it to{' '}
+                    <strong>auto</strong> or <strong>prompted</strong> above.
                   </p>
                 ) : (
                   <p>
-                    Already on prompted tools, which needs no{' '}
+                    Already on <strong>prompted tools</strong>, which needs no{' '}
                     <span className="font-mono">tools</span> parameter — this warning is expected
                     here, and your agents can still call tools.
                   </p>
@@ -154,9 +175,7 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
         <p className="text-destructive mt-2 text-xs">{(createAgent.error as Error).message}</p>
       ) : null}
       {remove.isError ? (
-        <p className="text-destructive mt-2 text-xs">
-          {(remove.error as Error).message} — detach it from any agents first.
-        </p>
+        <p className="text-destructive mt-2 text-xs">{(remove.error as Error).message}</p>
       ) : null}
     </li>
   );

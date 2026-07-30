@@ -6,6 +6,7 @@ import { db } from '@/server/db/client';
 import { agents, providerConnections } from '@/server/db/schema';
 import {
   createConnection,
+  deleteConnection,
   listConnections,
   probeConnection,
   resolveAgentModel,
@@ -50,7 +51,7 @@ describe('provider connections', () => {
     expect(calls[0]![0]).toBe('http://127.0.0.1:11434/v1/models');
   });
 
-  it('confirms tool calling when the endpoint returns a tool_call, forcing the choice', async () => {
+  it('probes the way runs actually call, with tool_choice auto', async () => {
     const connection = await createConnection({
       name: 'capable',
       kind: 'openai-compatible',
@@ -60,8 +61,10 @@ describe('provider connections', () => {
       if (url.endsWith('/models')) return Response.json({ data: [{ id: 'm' }] });
       const body = JSON.parse(String(init!.body)) as { tools?: unknown[]; tool_choice?: unknown };
       expect(body.tools).toHaveLength(1);
-      // Forced, so the answer reflects the server, not the model's mood.
-      expect(body.tool_choice).toEqual({ type: 'function', function: { name: 'ping' } });
+      // 'auto', matching a real run. Forcing the choice would answer a
+      // different question — whether the server parses `tools` — and a model
+      // that only calls under duress still never calls one in practice.
+      expect(body.tool_choice).toBe('auto');
       return Response.json({
         choices: [
           {
@@ -81,7 +84,7 @@ describe('provider connections', () => {
     expect(probe.toolCalling).toBe('yes');
   });
 
-  it('records prose as "no-call" rather than claiming the server lacks support', async () => {
+  it('records "no-call" when the model will not call a tool it plainly needs', async () => {
     const connection = await createConnection({
       name: 'toolless',
       kind: 'openai-compatible',
@@ -207,6 +210,29 @@ describe('provider connections', () => {
     expect((await resolveAgentModel(agent!, { hasTools: false })).toolMode).toBe('native');
     expect(calls).toEqual([]);
     await db.delete(agents).where(eq(agents.id, agent!.id));
+  });
+
+  it('refuses to delete a connection an agent still uses, naming the agents', async () => {
+    const connection = await createConnection({
+      name: 'in-use',
+      kind: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:11434/v1',
+    });
+    const [agent] = await db
+      .insert(agents)
+      .values({
+        name: 'Dependent',
+        systemPrompt: 's',
+        modelProvider: 'openai-compatible',
+        modelId: 'm',
+        providerConnectionId: connection.id,
+      })
+      .returning();
+
+    await expect(deleteConnection(connection.id)).rejects.toThrow(/Dependent/);
+
+    await db.delete(agents).where(eq(agents.id, agent!.id));
+    await expect(deleteConnection(connection.id)).resolves.toBeUndefined();
   });
 
   it('carries the connection tool mode through to the run', async () => {
