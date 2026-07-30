@@ -1,3 +1,5 @@
+import './load-env';
+
 import { eq } from 'drizzle-orm';
 
 import { db } from '../src/server/db/client';
@@ -12,7 +14,7 @@ export default async function run() {
 }
 `;
 
-async function main(): Promise<void> {
+export async function seed(): Promise<void> {
   await db
     .insert(users)
     .values({ email: LOCAL_USER_EMAIL, name: 'Local User' })
@@ -78,9 +80,11 @@ async function main(): Promise<void> {
   console.log('seeded');
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
+if (process.argv[1]?.endsWith('seed.ts')) {
+  seed()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

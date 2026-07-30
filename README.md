@@ -17,7 +17,7 @@ Inspired by [waku-agent](https://github.com/ShenSeanChen/waku-agent)'s
 - **Vercel AI SDK v5** for provider normalization only (Anthropic, OpenAI,
   Google, OpenRouter, Ollama). The agent loop is ~100 lines of our own code in
   `src/core/loop.ts`.
-- **Postgres 16** (docker-compose, port 5433) + **Drizzle ORM** with checked-in
+- **Postgres 16** (docker-compose, port 5544) + **Drizzle ORM** with checked-in
   SQL migrations.
 - **Vitest + Playwright** — test-driven throughout; the LLM is always faked in
   tests.
@@ -30,11 +30,21 @@ npm install
 npm run db:up                 # start Postgres (Docker)
 npm run db:migrate
 npm run seed                  # local user + starter agent
-npm run dev                   # http://localhost:3000
+npm run dev                   # http://localhost:7777
 ```
 
 Useful scripts: `npm test` (Vitest), `npm run test:e2e` (Playwright),
 `npm run lint`, `npm run typecheck`, `npm run knip`.
+
+### Ports
+
+| What     | Default | Change with                                            |
+| -------- | ------- | ------------------------------------------------------ |
+| App      | 7777    | `PORT` in `.env`                                       |
+| Postgres | 5544    | `POSTGRES_PORT` in `.env` (also update `DATABASE_URL`) |
+| E2E app  | 7788    | `E2E_PORT`                                             |
+
+Nothing else hardcodes a port — set the variable and every script follows.
 
 ### Local models and self-hosted servers
 

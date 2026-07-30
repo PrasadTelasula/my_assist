@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: my_assist
     ports:
-      - '5433:5432'
+      # Override with POSTGRES_PORT in .env if 5544 clashes on your machine.
+      - '${POSTGRES_PORT:-5544}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 const alias = { '@': path.resolve(import.meta.dirname, 'src') };
 
 export const TEST_DATABASE_URL =
-  process.env.DATABASE_URL_TEST ?? 'postgres://postgres:postgres@127.0.0.1:5433/my_assist_test';
+  process.env.DATABASE_URL_TEST ?? 'postgres://postgres:postgres@127.0.0.1:5544/my_assist_test';
 
 export default defineConfig({
   test: {
