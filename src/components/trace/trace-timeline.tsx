@@ -74,11 +74,19 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: bo
   }
 
   return (
-    <div className="flex flex-col gap-3 p-3" data-testid="trace-timeline">
+    <div className="flex flex-col gap-4 p-4" data-testid="trace-timeline">
       {iterations.map(({ iteration, response, calls }) => (
-        <section key={iteration} className="flex flex-col gap-2">
-          <header className="flex items-center gap-2">
-            <span className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">
+        // The rail makes a multi-iteration run read as one thread, not a pile of boxes.
+        <section
+          key={iteration}
+          className="border-edge relative flex flex-col gap-2 border-l pb-1 pl-4 last:border-transparent"
+        >
+          <span
+            aria-hidden
+            className="bg-accent-500 absolute top-1.5 -left-[3px] size-1.5 rounded-full"
+          />
+          <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-ink-muted text-[11px] font-semibold tracking-wider uppercase">
               Iteration {iteration + 1}
             </span>
             {response ? (
@@ -98,7 +106,9 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: bo
             )}
           </header>
           {response?.text ? (
-            <p className="text-ink text-xs leading-relaxed">{response.text}</p>
+            <p className="text-ink-muted border-edge bg-surface rounded-control border px-2.5 py-2 text-xs leading-relaxed">
+              {response.text}
+            </p>
           ) : null}
           {calls.map(({ call, result }) => (
             <ToolCallCard key={call.toolCallId} call={call} result={result} />
@@ -107,8 +117,8 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: bo
       ))}
 
       {finished ? (
-        <footer className="border-edge text-ink-muted flex items-center gap-2 border-t pt-2 text-[11px]">
-          <span>
+        <footer className="border-edge text-ink-muted flex flex-wrap items-center gap-2 border-t pt-3 text-[11px]">
+          <span className="font-medium">
             {finished.iterations} iteration{finished.iterations === 1 ? '' : 's'}
           </span>
           <span className="font-mono">
@@ -119,7 +129,7 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: bo
         </footer>
       ) : null}
       {error ? (
-        <p className="rounded-panel bg-destructive/10 text-destructive p-2 text-xs">
+        <p className="rounded-control bg-destructive/10 text-destructive border-destructive/30 border px-2.5 py-2 text-xs">
           {error.reason.replace('_', ' ')}: {error.message}
         </p>
       ) : null}

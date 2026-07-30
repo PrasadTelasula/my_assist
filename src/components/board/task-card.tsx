@@ -2,6 +2,7 @@
 
 import { useDraggable } from '@dnd-kit/core';
 
+import { cardClass } from '@/components/ui/card';
 import type { TaskItem } from '@/lib/types';
 
 export function TaskCard({
@@ -25,11 +26,13 @@ export function TaskCard({
       {...listeners}
       onClick={() => onOpen(task.id)}
       style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined}
-      className={`border-edge bg-surface rounded-panel shadow-panel cursor-grab border p-2.5 transition-colors ${
-        isDragging ? 'border-accent-500 z-10 opacity-90' : 'hover:border-accent-500/40'
+      className={`${cardClass()} cursor-grab p-3 transition-all ${
+        isDragging
+          ? 'border-accent-500 shadow-raised z-10 opacity-90'
+          : 'hover:border-edge-strong hover:shadow-raised'
       }`}
     >
-      <p className="text-ink text-sm leading-snug">{task.title}</p>
+      <p className="text-ink text-sm leading-snug font-medium">{task.title}</p>
       <div className="mt-2 flex items-center gap-1.5">
         {task.points != null ? (
           <span className="bg-surface-muted text-ink-muted rounded-control px-1.5 py-0.5 font-mono text-[11px]">
@@ -39,7 +42,9 @@ export function TaskCard({
         {task.assigneeAgentId ? (
           <span
             className={`rounded-control flex items-center gap-1 px-1.5 py-0.5 text-[11px] ${
-              agentWorking ? 'bg-accent-600/15 text-accent-500' : 'bg-surface-muted text-ink-muted'
+              agentWorking
+                ? 'bg-accent-100 text-accent-700 dark:bg-accent-600/20 dark:text-accent-400'
+                : 'bg-surface-muted text-ink-muted'
             }`}
           >
             {agentWorking ? (

@@ -37,12 +37,20 @@ change the rule deliberately — don't quietly violate it.
 - **Tokens only**: colors, radii, fonts, and shadows come from the `@theme`
   block in `globals.css`. No raw hex or default Tailwind palette classes in
   components (`bg-blue-500` fails review; `bg-accent-600` is the way).
+- Three surface levels carry all hierarchy: `canvas` (the page) behind
+  `surface` (cards, headers, the sidebar) with `surface-muted` for insets —
+  chips, table heads, kanban columns. Depth comes from `shadow-card` and
+  `shadow-raised`, never from a fourth grey.
 - Type scale ≤ 5 sizes. All money, token-count, and latency figures render in
   the mono font.
 - One shell: sidebar + `PageHeader` on every page. Compact density for data
   surfaces (board, runs, traces); roomy for editing surfaces.
-- shadcn/ui is a base to restyle through tokens — if a screen looks like the
-  shadcn docs, it isn't done.
+- **Primitives, not class strings**: `Button`, `TextInput`/`Select`/`TextArea`/
+  `Field`, and `cardClass` are the only definitions of how a button, a form
+  control, and a card surface look. A component that hand-rolls
+  `bg-accent-600 … rounded-control px-3 py-1.5` has forked the design system.
+  `cardClass` is a string because cards here are forms, list items and links —
+  wrapping each in a div just to get a border nests for nothing.
 - One component per concept: `StatusBadge` is the only way a status renders,
   `CostChip` the only way money renders.
 - Every view ships with five states designed: loading, empty (with

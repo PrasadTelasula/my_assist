@@ -3,8 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { use, useEffect, useRef, useState } from 'react';
 
+import { MessageBubble } from '@/components/chat/message-bubble';
 import { PageHeader } from '@/components/shell/page-header';
 import { TraceTimeline } from '@/components/trace/trace-timeline';
+import { Button } from '@/components/ui/button';
+import { TextArea } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 import { useRunEvents } from '@/lib/use-run-events';
@@ -18,10 +21,26 @@ export default function ChatThreadPage({ params }: { params: Promise<{ id: strin
   const { events, live } = useRunEvents(activeRunId);
   const wasLive = useRef(false);
 
+  const bottomRef = useRef<HTMLDivElement>(null);
+
   const { data: thread } = useQuery({
     queryKey: queryKeys.thread(threadId),
     queryFn: () => api.threads.get(threadId),
   });
+  const { data: agents } = useQuery({ queryKey: queryKeys.agents, queryFn: api.agents.list });
+  const agentName = agents?.find((a) => a.id === thread?.agentId)?.name ?? 'Agent';
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text || live) return;
+    setDraft('');
+    send.mutate(text);
+  };
+
+  // Keep the newest turn in view as the conversation and the run progress.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [thread?.messages.length, live]);
 
   const send = useMutation({
     mutationFn: (text: string) => api.threads.postMessage(threadId, text),
@@ -43,76 +62,94 @@ export default function ChatThreadPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="flex h-screen flex-col">
       <PageHeader title={thread?.title ?? 'Conversation'}>
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={() => setShowTrace((v) => !v)}
           aria-pressed={showTrace}
-          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1 text-xs transition-colors"
         >
           {showTrace ? 'Hide trace' : 'Show trace'}
-        </button>
+        </Button>
       </PageHeader>
 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex-1 space-y-3 overflow-y-auto p-6">
-            {thread?.messages.map((message) => (
-              <div
-                key={message.id}
-                className={`rounded-panel max-w-[80%] px-3 py-2 text-sm leading-relaxed ${
-                  message.role === 'user'
-                    ? 'bg-accent-600/10 text-ink ml-auto'
-                    : 'bg-surface border-edge text-ink border'
-                }`}
-              >
-                {message.content}
-              </div>
-            ))}
-            {live ? (
-              <p className="text-ink-faint text-xs" role="status">
-                Agent is working…
-              </p>
-            ) : null}
-            {send.isError ? (
-              <p className="text-destructive text-xs">{(send.error as Error).message}</p>
-            ) : null}
+          <div className="flex-1 overflow-y-auto">
+            {/* Reading measure, not full bleed: long answers are unreadable edge to edge. */}
+            <div className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-8">
+              {thread?.messages.length === 0 ? (
+                <p className="text-ink-faint py-16 text-center text-sm">
+                  Say something to get started.
+                </p>
+              ) : null}
+              {thread?.messages.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  role={message.role}
+                  content={message.content}
+                  agentName={agentName}
+                />
+              ))}
+              {live ? (
+                <p className="text-ink-faint flex items-center gap-2 text-xs" role="status">
+                  <span className="border-accent-500 size-3 animate-spin rounded-full border-2 border-t-transparent" />
+                  {agentName} is thinking…
+                </p>
+              ) : null}
+              {send.isError ? (
+                <p className="text-destructive rounded-control bg-destructive/10 px-3 py-2 text-xs">
+                  {(send.error as Error).message}
+                </p>
+              ) : null}
+              <div ref={bottomRef} />
+            </div>
           </div>
-          <form
-            className="border-edge flex gap-2 border-t p-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const text = draft.trim();
-              if (!text || live) return;
-              setDraft('');
-              send.mutate(text);
-            }}
-          >
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Message the agent…"
-              aria-label="Message"
-              className="border-edge bg-surface text-ink rounded-control flex-1 border px-3 py-2 text-sm"
-            />
-            <button
-              type="submit"
-              disabled={live || !draft.trim()}
-              className="bg-accent-600 hover:bg-accent-700 rounded-control px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+
+          <div className="border-edge bg-surface border-t">
+            <form
+              className="mx-auto flex max-w-2xl items-end gap-2 px-6 py-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
             >
-              Send
-            </button>
-          </form>
+              <TextArea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter sends; Shift+Enter is a newline, as in every chat app.
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submit();
+                  }
+                }}
+                rows={1}
+                placeholder={`Message ${agentName}…`}
+                aria-label="Message"
+                className="max-h-40 flex-1 resize-none"
+              />
+              <Button type="submit" variant="primary" disabled={live || !draft.trim()}>
+                Send
+              </Button>
+            </form>
+            <p className="text-ink-faint mx-auto max-w-2xl px-6 pb-3 text-[11px]">
+              Enter to send · Shift+Enter for a new line
+            </p>
+          </div>
         </div>
 
         {showTrace ? (
           <aside className="border-edge bg-surface-muted w-96 shrink-0 overflow-y-auto border-l">
-            <h2 className="text-ink-faint px-3 pt-3 text-[11px] font-medium tracking-wide uppercase">
+            <h2 className="text-ink-muted border-edge bg-surface sticky top-0 border-b px-4 py-3 text-[11px] font-semibold tracking-wider uppercase">
               Run trace
             </h2>
             {activeRunId ? (
               <TraceTimeline events={events} live={live} />
             ) : (
-              <p className="text-ink-faint p-3 text-xs">Send a message to watch the agent think.</p>
+              <p className="text-ink-faint p-4 text-xs leading-relaxed">
+                Send a message to watch the agent think — every model call, tool call, and token
+                lands here live.
+              </p>
             )}
           </aside>
         ) : null}

@@ -8,6 +8,8 @@ import { PlanFromGoalForm } from '@/components/board/plan-form';
 import { TaskDrawer } from '@/components/board/task-drawer';
 import { EmptyState } from '@/components/shell/empty-state';
 import { PageHeader } from '@/components/shell/page-header';
+import { Button } from '@/components/ui/button';
+import { Select, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { type TaskItem, type TaskStatus } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -83,37 +85,38 @@ export default function BoardPage() {
   return (
     <>
       <PageHeader title="Board">
-        <select
-          value={activeSprintId ?? ''}
-          onChange={(e) => setSprintId(e.target.value || undefined)}
-          aria-label="Sprint"
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
-        >
-          {sprints?.map((sprint) => (
-            <option key={sprint.id} value={sprint.id}>
-              {sprint.name}
-            </option>
-          ))}
-        </select>
-        <button
+        {sprints?.length ? (
+          <Select
+            value={activeSprintId ?? ''}
+            onChange={(e) => setSprintId(e.target.value || undefined)}
+            aria-label="Sprint"
+            className="w-auto"
+          >
+            {sprints.map((sprint) => (
+              <option key={sprint.id} value={sprint.id}>
+                {sprint.name}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+        <Button
           type="button"
           onClick={() => {
             const name = window.prompt('Sprint name?');
             if (name) createSprint.mutate(name);
           }}
-          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1.5 text-sm transition-colors"
         >
           New sprint
-        </button>
+        </Button>
         {activeSprintId ? (
           <>
-            <label className="text-ink-faint flex items-center gap-1.5 text-xs">
+            <label className="text-ink-muted flex items-center gap-1.5 text-xs font-medium">
               Critic
-              <select
+              <Select
                 value={activeSprint?.criticAgentId ?? ''}
                 onChange={(e) => setCritic.mutate(e.target.value || null)}
                 aria-label="Critic agent"
-                className="border-edge bg-surface text-ink rounded-control border px-1.5 py-1 text-xs"
+                className="w-auto min-w-28"
               >
                 <option value="">none</option>
                 {agents?.map((agent) => (
@@ -121,15 +124,11 @@ export default function BoardPage() {
                     {agent.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
-            <button
-              type="button"
-              onClick={() => setPlanning((v) => !v)}
-              className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors"
-            >
+            <Button type="button" variant="primary" onClick={() => setPlanning((v) => !v)}>
               Plan from goal
-            </button>
+            </Button>
           </>
         ) : null}
       </PageHeader>
@@ -145,26 +144,26 @@ export default function BoardPage() {
       {activeSprintId ? (
         <>
           <form
-            className="flex gap-2 px-4 pt-4"
+            className="flex gap-2 px-6 pt-5"
             onSubmit={(e) => {
               e.preventDefault();
               if (newTitle.trim()) createTask.mutate();
             }}
           >
-            <input
+            <TextInput
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Add a story to the backlog…"
               aria-label="New story title"
-              className="border-edge bg-surface text-ink rounded-control flex-1 border px-3 py-1.5 text-sm"
+              className="flex-1"
             />
-            <button
+            <Button
               type="submit"
+              variant="primary"
               disabled={!newTitle.trim() || createTask.isPending}
-              className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
             >
               Add story
-            </button>
+            </Button>
           </form>
 
           <KanbanBoard

@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+import { Select, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { type ConnectionItem } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -48,7 +49,7 @@ export function ModelPicker({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <select
+        <Select
           value={connectionId ?? ''}
           onChange={(e) => {
             const id = e.target.value || null;
@@ -56,7 +57,7 @@ export function ModelPicker({
             onChange({ connectionId: id, provider: picked?.kind ?? provider, modelId });
           }}
           aria-label="Connection"
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
+          className="w-auto"
         >
           <option value="">Environment keys</option>
           {connections?.map((c) => (
@@ -64,30 +65,30 @@ export function ModelPicker({
               {c.name} ({c.kind})
             </option>
           ))}
-        </select>
+        </Select>
 
         {connection ? null : (
-          <select
+          <Select
             value={provider}
             onChange={(e) => onChange({ connectionId: null, provider: e.target.value, modelId })}
             aria-label="Provider"
-            className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
+            className="w-auto"
           >
             {BUILT_IN_PROVIDERS.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
               </option>
             ))}
-          </select>
+          </Select>
         )}
 
-        <input
+        <TextInput
           value={modelId}
           onChange={(e) => onChange({ connectionId, provider, modelId: e.target.value })}
           placeholder={placeholder}
           aria-label="Model id"
           list={probe?.models.length ? 'discovered-models' : undefined}
-          className="border-edge bg-surface text-ink rounded-control flex-1 border px-2 py-1.5 font-mono text-sm"
+          className="flex-1 font-mono"
         />
         {probe?.models.length ? (
           <datalist id="discovered-models">

@@ -37,14 +37,17 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-panel flex min-h-40 flex-1 flex-col gap-2 p-2 transition-colors ${
+      className={`rounded-panel flex min-h-48 flex-1 flex-col gap-2 p-3 transition-colors ${
         isOver
-          ? 'bg-accent-600/5 outline-accent-500/40 outline-2 outline-dashed'
+          ? 'bg-accent-50 dark:bg-accent-600/10 outline-accent-500 outline-2 outline-dashed'
           : 'bg-surface-muted'
       }`}
     >
-      <h3 className="text-ink-faint px-1 text-[11px] font-medium tracking-wide uppercase">
-        {label} <span className="font-mono">({tasks.length})</span>
+      <h3 className="text-ink-muted flex items-center gap-2 px-0.5 pb-1 text-[11px] font-semibold tracking-wider uppercase">
+        {label}
+        <span className="bg-surface text-ink-faint rounded-control px-1.5 py-0.5 font-mono text-[10px]">
+          {tasks.length}
+        </span>
       </h3>
       {tasks.map((task) => (
         <TaskCard
@@ -88,7 +91,7 @@ export function KanbanBoard({
       onDragStart={() => onDragStateChange(true)}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 p-4">
+      <div className="flex gap-4 p-6">
         {COLUMNS.map(({ status, label }) => (
           <Column
             key={status}

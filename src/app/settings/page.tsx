@@ -7,6 +7,7 @@ import { ConnectionCard } from '@/components/settings/connection-card';
 import { ConnectionForm } from '@/components/settings/connection-form';
 import { EmptyState } from '@/components/shell/empty-state';
 import { PageHeader } from '@/components/shell/page-header';
+import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -20,13 +21,9 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title="Settings">
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors"
-        >
+        <Button type="button" variant="primary" onClick={() => setAdding(true)}>
           Add connection
-        </button>
+        </Button>
       </PageHeader>
 
       <div className="mx-auto flex max-w-3xl flex-col gap-4 p-6">

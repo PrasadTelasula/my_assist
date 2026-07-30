@@ -3,6 +3,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { cardClass } from '@/components/ui/card';
+import { Select, TextArea } from '@/components/ui/field';
 import { api } from '@/lib/api';
 
 export function PlanFromGoalForm({
@@ -24,26 +27,26 @@ export function PlanFromGoalForm({
 
   return (
     <form
-      className="border-edge bg-surface rounded-panel m-4 flex flex-col gap-2 border p-3"
+      className={`${cardClass()} mx-6 mt-5 flex flex-col gap-3 p-4`}
       onSubmit={(e) => {
         e.preventDefault();
         if (goal.trim() && agentId) plan.mutate();
       }}
     >
-      <textarea
+      <TextArea
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
         placeholder="Describe the sprint goal — the planner agent decomposes it into backlog stories for you to curate."
         aria-label="Sprint goal"
         rows={3}
-        className="border-edge bg-surface text-ink rounded-control border px-3 py-2 text-sm"
+        className="resize-none"
       />
       <div className="flex items-center gap-2">
-        <select
+        <Select
           value={agentId}
           onChange={(e) => setAgentId(e.target.value)}
           aria-label="Planner agent"
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
+          className="w-auto"
         >
           <option value="">Choose a planner agent…</option>
           {agents.map((agent) => (
@@ -51,14 +54,14 @@ export function PlanFromGoalForm({
               {agent.name}
             </option>
           ))}
-        </select>
-        <button
+        </Select>
+        <Button
           type="submit"
+          variant="primary"
           disabled={!goal.trim() || !agentId || plan.isPending}
-          className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
         >
           {plan.isPending ? 'Planning…' : 'Fill the backlog'}
-        </button>
+        </Button>
         {plan.isError ? (
           <p className="text-destructive text-xs">{(plan.error as Error).message}</p>
         ) : null}

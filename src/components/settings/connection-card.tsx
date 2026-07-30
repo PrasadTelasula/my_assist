@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
+import { Button } from '@/components/ui/button';
+import { cardClass } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { type ConnectionItem } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -45,44 +47,43 @@ export function ConnectionCard({ connection }: { connection: ConnectionItem }) {
   });
 
   return (
-    <li className="border-edge bg-surface rounded-panel border p-3">
-      <div className="flex items-center gap-2">
+    <li className={`${cardClass()} p-4`}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="text-ink font-mono text-sm font-semibold">{connection.name}</span>
-        <span className="bg-surface-muted text-ink-muted rounded-control px-1.5 py-0.5 text-[11px]">
+        <span className="bg-accent-100 text-accent-700 dark:bg-accent-600/20 dark:text-accent-400 rounded-control px-2 py-0.5 text-[11px] font-medium">
           {connection.kind}
         </span>
         {connection.hasApiKey ? (
-          <span className="bg-surface-muted text-ink-muted rounded-control px-1.5 py-0.5 text-[11px]">
+          <span className="bg-surface-muted text-ink-muted rounded-control px-2 py-0.5 text-[11px]">
             token set
           </span>
         ) : null}
-        <span className="text-ink-faint flex-1 truncate font-mono text-[11px]">
+        <span className="text-ink-faint min-w-40 flex-1 truncate font-mono text-[11px]">
           {connection.baseUrl ?? 'default endpoint'}
         </span>
-        <button
-          type="button"
-          onClick={() => test.mutate()}
-          disabled={test.isPending}
-          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2 py-1 text-xs transition-colors disabled:opacity-50"
-        >
-          {test.isPending ? 'Testing…' : 'Test'}
-        </button>
-        <button
-          type="button"
-          onClick={() => createAgent.mutate()}
-          disabled={createAgent.isPending}
-          className="bg-accent-600 hover:bg-accent-700 rounded-control px-2 py-1 text-xs font-medium text-white transition-colors disabled:opacity-50"
-        >
-          {createAgent.isPending ? 'Creating…' : 'Create agent'}
-        </button>
-        <button
-          type="button"
-          onClick={() => remove.mutate()}
-          aria-label={`Delete ${connection.name}`}
-          className="text-ink-faint hover:text-destructive rounded-control px-2 py-1 text-xs transition-colors"
-        >
-          Delete
-        </button>
+        <div className="flex items-center gap-1.5">
+          <Button type="button" size="sm" onClick={() => test.mutate()} disabled={test.isPending}>
+            {test.isPending ? 'Testing…' : 'Test'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            onClick={() => createAgent.mutate()}
+            disabled={createAgent.isPending}
+          >
+            {createAgent.isPending ? 'Creating…' : 'Create agent'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => remove.mutate()}
+            aria-label={`Delete ${connection.name}`}
+          >
+            Delete
+          </Button>
+        </div>
       </div>
 
       {test.data ? (

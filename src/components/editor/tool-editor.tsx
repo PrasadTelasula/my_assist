@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { Select, TextInput } from '@/components/ui/field';
 import { api, ToolSaveError } from '@/lib/api';
 import { type ValidationIssue } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -127,28 +129,28 @@ export function ToolEditor({
   return (
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="border-edge flex items-center gap-2 border-b px-3 py-2">
+        <div className="border-edge bg-surface flex items-center gap-2 border-b px-4 py-2.5">
           {toolId === null ? (
             <>
-              <input
+              <TextInput
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="tool_name"
                 aria-label="Tool name"
-                className="border-edge bg-surface text-ink rounded-control border px-2 py-1 font-mono text-sm"
+                className="w-48 font-mono"
               />
-              <input
+              <TextInput
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="What the model reads to decide when to use it"
                 aria-label="Tool description"
-                className="border-edge bg-surface text-ink rounded-control flex-1 border px-2 py-1 text-sm"
+                className="flex-1"
               />
             </>
           ) : (
             <span className="text-ink flex-1 font-mono text-sm font-semibold">{tool?.name}</span>
           )}
-          <label className="text-ink-muted flex items-center gap-1.5 text-xs">
+          <label className="text-ink-muted flex shrink-0 items-center gap-1.5 text-xs font-medium">
             <input
               type="checkbox"
               checked={allowNet}
@@ -158,11 +160,11 @@ export function ToolEditor({
             network
           </label>
           {tool && tool.versions.length > 0 ? (
-            <select
+            <Select
               value={viewingVersion ?? tool.latestVersionId ?? ''}
               onChange={(e) => setViewingVersion(e.target.value)}
               aria-label="Version"
-              className="border-edge bg-surface text-ink-muted rounded-control border px-1.5 py-1 font-mono text-xs"
+              className="w-auto font-mono text-xs"
             >
               {tool.versions.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -170,16 +172,16 @@ export function ToolEditor({
                   {v.id === tool.latestVersionId ? ' (latest)' : ''}
                 </option>
               ))}
-            </select>
+            </Select>
           ) : null}
-          <button
+          <Button
             type="button"
+            variant="primary"
             onClick={() => save.mutate()}
             disabled={save.isPending || (toolId === null && !name)}
-            className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1 text-sm font-medium text-white transition-colors disabled:opacity-50"
           >
             {save.isPending ? 'Saving…' : toolId ? 'Save as new version' : 'Create tool'}
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1">
@@ -196,9 +198,9 @@ export function ToolEditor({
         </div>
 
         {issues.length > 0 ? (
-          <ul className="border-edge bg-destructive/5 max-h-28 overflow-y-auto border-t px-3 py-2">
+          <ul className="border-edge bg-destructive/5 max-h-28 overflow-y-auto border-t px-4 py-2.5">
             {issues.map((issue, i) => (
-              <li key={i} className="text-destructive font-mono text-xs">
+              <li key={i} className="text-destructive font-mono text-xs leading-relaxed">
                 {issue.line}:{issue.column} {issue.message}
               </li>
             ))}

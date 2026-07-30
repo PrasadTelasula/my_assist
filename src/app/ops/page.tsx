@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { EmptyState } from '@/components/shell/empty-state';
 import { PageHeader } from '@/components/shell/page-header';
 import { CostChip } from '@/components/trace/cost-chip';
+import { cardClass } from '@/components/ui/card';
 
 interface OpsData {
   byAgent: {
@@ -51,22 +52,22 @@ export default function OpsPage() {
   return (
     <>
       <PageHeader title="Ops">
-        <span className="text-ink-muted text-xs">
-          <span className="font-mono">{data.activeRuns}</span> active run
+        <span className="bg-surface-muted text-ink-muted rounded-control px-2.5 py-1 text-xs">
+          <span className="text-ink font-mono font-semibold">{data.activeRuns}</span> active run
           {data.activeRuns === 1 ? '' : 's'}
         </span>
       </PageHeader>
 
-      <div className="flex flex-col gap-6 p-6">
-        <section>
-          <h2 className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">
+      <div className="mx-auto flex max-w-4xl flex-col gap-5 p-6">
+        <section className={`${cardClass()} p-5`}>
+          <h2 className="text-ink-muted text-[11px] font-semibold tracking-wider uppercase">
             Providers
           </h2>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             {data.providers.map(({ provider, configured }) => (
               <span
                 key={provider}
-                className={`rounded-control px-2 py-1 font-mono text-xs ${
+                className={`rounded-control px-2.5 py-1 font-mono text-xs ${
                   configured ? 'bg-success/10 text-success' : 'bg-surface-muted text-ink-faint'
                 }`}
               >
@@ -76,35 +77,35 @@ export default function OpsPage() {
           </div>
         </section>
 
-        <section>
-          <h2 className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">
+        <section className={`${cardClass()} p-5`}>
+          <h2 className="text-ink-muted text-[11px] font-semibold tracking-wider uppercase">
             Spend by agent
           </h2>
           {data.byAgent.length ? (
-            <table className="mt-2 w-full max-w-2xl text-left text-sm">
+            <table className="mt-3 w-full text-left text-sm">
               <thead>
-                <tr className="text-ink-faint text-[11px] tracking-wide uppercase">
-                  <th className="py-1 pr-4 font-medium">Agent</th>
-                  <th className="py-1 pr-4 font-medium">Runs</th>
-                  <th className="py-1 pr-4 font-medium">Failures</th>
-                  <th className="py-1 pr-4 font-medium">Tokens</th>
-                  <th className="py-1 font-medium">Cost</th>
+                <tr className="text-ink-faint border-edge border-b text-[11px] tracking-wider uppercase">
+                  <th className="py-2 pr-4 font-semibold">Agent</th>
+                  <th className="py-2 pr-4 font-semibold">Runs</th>
+                  <th className="py-2 pr-4 font-semibold">Failures</th>
+                  <th className="py-2 pr-4 font-semibold">Tokens</th>
+                  <th className="py-2 font-semibold">Cost</th>
                 </tr>
               </thead>
               <tbody className="divide-edge divide-y">
                 {data.byAgent.map((row) => (
                   <tr key={row.agentId}>
-                    <td className="text-ink py-1.5 pr-4">{row.agentName}</td>
-                    <td className="text-ink-muted py-1.5 pr-4 font-mono text-xs">{row.runCount}</td>
+                    <td className="text-ink py-2 pr-4 font-medium">{row.agentName}</td>
+                    <td className="text-ink-muted py-2 pr-4 font-mono text-xs">{row.runCount}</td>
                     <td
-                      className={`py-1.5 pr-4 font-mono text-xs ${row.failures > 0 ? 'text-destructive' : 'text-ink-muted'}`}
+                      className={`py-2 pr-4 font-mono text-xs ${row.failures > 0 ? 'text-destructive' : 'text-ink-muted'}`}
                     >
                       {row.failures}
                     </td>
-                    <td className="text-ink-muted py-1.5 pr-4 font-mono text-xs">
+                    <td className="text-ink-muted py-2 pr-4 font-mono text-xs">
                       {row.inputTokens ?? 0}→{row.outputTokens ?? 0}
                     </td>
-                    <td className="py-1.5">
+                    <td className="py-2">
                       <CostChip costUsd={row.costUsd} />
                     </td>
                   </tr>
@@ -116,16 +117,16 @@ export default function OpsPage() {
           )}
         </section>
 
-        <section>
-          <h2 className="text-ink-faint text-[11px] font-medium tracking-wide uppercase">
+        <section className={`${cardClass()} p-5`}>
+          <h2 className="text-ink-muted text-[11px] font-semibold tracking-wider uppercase">
             Recent failures
           </h2>
           {data.recentFailures.length ? (
-            <ul className="mt-2 flex max-w-2xl flex-col gap-1.5">
+            <ul className="divide-edge mt-1 flex flex-col divide-y">
               {data.recentFailures.map((failure) => (
-                <li key={failure.id} className="text-xs">
+                <li key={failure.id} className="py-2 text-xs">
                   <Link href={`/runs/${failure.id}`} className="hover:underline">
-                    <span className="text-ink">{failure.agentName}</span>{' '}
+                    <span className="text-ink font-medium">{failure.agentName}</span>{' '}
                     <span className="text-ink-faint">({failure.trigger})</span>{' '}
                     <span className="text-destructive">{failure.error}</span>
                   </Link>
@@ -133,7 +134,7 @@ export default function OpsPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-ink-faint mt-2 text-xs">None — clean slate.</p>
+            <p className="text-ink-faint mt-3 text-xs">None — clean slate.</p>
           )}
         </section>
       </div>

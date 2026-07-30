@@ -5,6 +5,7 @@ import { use } from 'react';
 
 import { PageHeader } from '@/components/shell/page-header';
 import { TraceTimeline } from '@/components/trace/trace-timeline';
+import { Button } from '@/components/ui/button';
 import { useRunEvents } from '@/lib/use-run-events';
 
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,19 +23,19 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
     <>
       <PageHeader title="Run trace">
         {live ? (
-          <button
+          <Button
             type="button"
+            variant="danger"
             onClick={() => abort.mutate()}
             disabled={abort.isPending}
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 rounded-control border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
             Abort run
-          </button>
+          </Button>
         ) : null}
       </PageHeader>
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl p-6">
         {abort.isError ? (
-          <p className="text-destructive px-3 pt-3 text-xs">{(abort.error as Error).message}</p>
+          <p className="text-destructive pb-3 text-xs">{(abort.error as Error).message}</p>
         ) : null}
         <TraceTimeline events={events} live={live} />
       </div>

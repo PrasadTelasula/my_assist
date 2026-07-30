@@ -37,12 +37,11 @@ export function ThemeToggle() {
         setTheme(next);
       }}
       aria-label={`Switch to ${next} theme`}
-      className="text-ink-muted hover:bg-surface-muted hover:text-ink rounded-control flex items-center gap-2 px-2.5 py-1.5 text-sm transition-colors"
+      className="text-ink-muted hover:bg-surface-muted hover:text-ink rounded-control grid size-8 place-items-center transition-colors"
     >
       <span className={theme === null ? 'invisible' : undefined}>
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
       </span>
-      {theme === null ? '' : theme === 'dark' ? 'Light' : 'Dark'}
     </button>
   );
 }

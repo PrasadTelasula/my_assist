@@ -7,6 +7,9 @@ import { use, useEffect, useState } from 'react';
 
 import { ModelPicker } from '@/components/agents/model-picker';
 import { PageHeader } from '@/components/shell/page-header';
+import { Button } from '@/components/ui/button';
+import { cardClass } from '@/components/ui/card';
+import { Field, TextArea, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -67,49 +70,44 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <PageHeader title={agent.name}>
-        <button
-          type="button"
-          onClick={() => startChat.mutate()}
-          disabled={startChat.isPending}
-          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-50"
-        >
+        <Button type="button" onClick={() => startChat.mutate()} disabled={startChat.isPending}>
           {startChat.isPending ? 'Opening…' : 'Start chat'}
-        </button>
+        </Button>
         <Link
           href={`/agents/${id}/editor`}
-          className="border-edge text-ink-muted hover:text-ink rounded-control border px-2.5 py-1.5 text-sm transition-colors"
+          className="border-edge bg-surface text-ink hover:border-edge-strong hover:bg-surface-muted rounded-control inline-flex h-9 shrink-0 items-center border px-3.5 text-sm font-medium transition-colors"
         >
           Open tool editor
         </Link>
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={() => save.mutate()}
           disabled={save.isPending}
-          className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
         >
           {save.isPending ? 'Saving…' : 'Save changes'}
-        </button>
+        </Button>
       </PageHeader>
 
       <div className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
-        <section className="flex flex-col gap-1.5">
-          <label htmlFor="system-prompt" className="text-ink text-sm font-medium">
+        <section className={`${cardClass()} flex flex-col gap-1.5 p-5`}>
+          <label htmlFor="system-prompt" className="text-ink text-sm font-semibold">
             System prompt
           </label>
-          <p className="text-ink-faint text-xs">
+          <p className="text-ink-muted mb-1 text-xs leading-relaxed">
             The agent&apos;s harness in plain sight — edit it, save, and the next run uses it.
           </p>
-          <textarea
+          <TextArea
             id="system-prompt"
             value={form.systemPrompt}
             onChange={(e) => setForm({ ...form, systemPrompt: e.target.value })}
             rows={8}
-            className="border-edge bg-surface text-ink rounded-control border px-3 py-2 font-mono text-sm leading-relaxed"
+            className="font-mono"
           />
         </section>
 
-        <section className="flex flex-col gap-1.5">
-          <span className="text-ink text-sm font-medium">Model</span>
+        <section className={`${cardClass()} flex flex-col gap-2 p-5`}>
+          <span className="text-ink text-sm font-semibold">Model</span>
           <ModelPicker
             connectionId={form.providerConnectionId}
             provider={form.modelProvider}
@@ -125,44 +123,46 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
           />
         </section>
 
-        <section className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="max-iterations" className="text-ink text-sm font-medium">
-              Max iterations
-            </label>
-            <input
+        <section className={`${cardClass()} grid grid-cols-1 gap-4 p-5 sm:grid-cols-2`}>
+          <Field
+            label="Max iterations"
+            hint="Hard stop on the tool-calling loop."
+            htmlFor="max-iterations"
+          >
+            <TextInput
               id="max-iterations"
               type="number"
               min={1}
               max={100}
               value={form.maxIterations}
               onChange={(e) => setForm({ ...form, maxIterations: Number(e.target.value) })}
-              className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-sm"
+              className="font-mono"
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="cost-ceiling" className="text-ink text-sm font-medium">
-              Cost ceiling (USD per run)
-            </label>
-            <input
+          </Field>
+          <Field
+            label="Cost ceiling (USD per run)"
+            hint="The run aborts once spend crosses this."
+            htmlFor="cost-ceiling"
+          >
+            <TextInput
               id="cost-ceiling"
               type="number"
               min={0.01}
               step={0.05}
               value={form.costCeilingUsd}
               onChange={(e) => setForm({ ...form, costCeilingUsd: Number(e.target.value) })}
-              className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-sm"
+              className="font-mono"
             />
-          </div>
+          </Field>
         </section>
 
-        <section className="flex flex-col gap-1.5">
-          <span className="text-ink text-sm font-medium">Tools</span>
+        <section className={`${cardClass()} flex flex-col gap-2 p-5`}>
+          <span className="text-ink text-sm font-semibold">Tools</span>
           {allTools?.length ? (
             <ul className="flex flex-col gap-1">
               {allTools.map((tool) => (
                 <li key={tool.id}>
-                  <label className="border-edge bg-surface rounded-control flex cursor-pointer items-center gap-2 border px-3 py-2">
+                  <label className="border-edge hover:border-edge-strong rounded-control flex cursor-pointer items-center gap-2.5 border px-3 py-2 transition-colors">
                     <input
                       type="checkbox"
                       checked={toolIds.includes(tool.id)}
@@ -175,8 +175,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
                       }
                       className="accent-accent-600"
                     />
-                    <span className="text-ink font-mono text-sm">{tool.name}</span>
-                    <span className="text-ink-faint text-xs">{tool.description}</span>
+                    <span className="text-ink font-mono text-sm font-medium">{tool.name}</span>
+                    <span className="text-ink-faint truncate text-xs">{tool.description}</span>
                   </label>
                 </li>
               ))}
@@ -184,7 +184,10 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
           ) : (
             <p className="text-ink-faint text-xs">
               No tools yet — write one in the{' '}
-              <Link href={`/agents/${id}/editor`} className="text-accent-500 hover:underline">
+              <Link
+                href={`/agents/${id}/editor`}
+                className="text-accent-600 font-medium hover:underline"
+              >
                 tool editor
               </Link>
               .

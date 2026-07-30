@@ -3,6 +3,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { cardClass } from '@/components/ui/card';
+import { Field, Select, TextInput } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { PROVIDER_KINDS, type ProviderKind } from '@/lib/types';
 import { queryKeys } from '@/lib/query-keys';
@@ -40,76 +43,69 @@ export function ConnectionForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      className="border-edge bg-surface rounded-panel flex flex-col gap-3 border p-4"
+      className={`${cardClass()} flex flex-col gap-4 p-5`}
       onSubmit={(e) => {
         e.preventDefault();
         if (name.trim()) create.mutate();
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
-        <label className="text-ink-muted flex flex-col gap-1 text-xs">
-          Name
-          <input
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Name" htmlFor="connection-name">
+          <TextInput
+            id="connection-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="apfel-local"
-            className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-sm"
+            className="font-mono"
           />
-        </label>
-        <label className="text-ink-muted flex flex-col gap-1 text-xs">
-          Kind
-          <select
+        </Field>
+        <Field label="Kind" htmlFor="connection-kind">
+          <Select
+            id="connection-kind"
             value={kind}
             onChange={(e) => setKind(e.target.value as ProviderKind)}
-            className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 text-sm"
           >
             {PROVIDER_KINDS.map((k) => (
               <option key={k} value={k}>
                 {k}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      <label className="text-ink-muted flex flex-col gap-1 text-xs">
-        Base URL
-        <input
+      <Field label="Base URL" hint={KIND_HINTS[kind]} htmlFor="connection-url">
+        <TextInput
+          id="connection-url"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="http://127.0.0.1:11434/v1"
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-sm"
+          className="font-mono"
         />
-        <span className="text-ink-faint">{KIND_HINTS[kind]}</span>
-      </label>
+      </Field>
 
-      <label className="text-ink-muted flex flex-col gap-1 text-xs">
-        Token / API key{' '}
-        <span className="text-ink-faint">(leave blank if the server needs none)</span>
-        <input
+      <Field
+        label="Token / API key"
+        hint="Leave blank if the server needs none."
+        htmlFor="connection-key"
+      >
+        <TextInput
+          id="connection-key"
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="none"
-          className="border-edge bg-surface text-ink rounded-control border px-2 py-1.5 font-mono text-sm"
+          className="font-mono"
         />
-      </label>
+      </Field>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={!name.trim() || create.isPending}
-          className="bg-accent-600 hover:bg-accent-700 rounded-control px-3 py-1.5 text-sm font-medium text-white transition-colors disabled:opacity-50"
-        >
+      <div className="border-edge flex items-center gap-2 border-t pt-4">
+        <Button type="submit" variant="primary" disabled={!name.trim() || create.isPending}>
           {create.isPending ? 'Saving…' : 'Add connection'}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          className="text-ink-muted hover:text-ink rounded-control px-3 py-1.5 text-sm"
-        >
+        </Button>
+        <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
-        </button>
+        </Button>
         {create.isError ? (
           <p className="text-destructive text-xs">{(create.error as Error).message}</p>
         ) : null}
