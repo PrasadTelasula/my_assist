@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { TraceTimeline } from '@/components/trace/trace-timeline';
@@ -8,7 +8,14 @@ const usage = { inputTokens: 10, outputTokens: 5 };
 
 function traceFixture(): TraceEvent[] {
   return [
-    { seq: 1, event: { type: 'run_started', model: { provider: 'fake', modelId: 's' } } },
+    {
+      seq: 1,
+      event: {
+        type: 'run_started',
+        model: { provider: 'fake', modelId: 's' },
+        tools: ['get_time'],
+      },
+    },
     { seq: 2, event: { type: 'iteration_started', iteration: 0 } },
     {
       seq: 3,
@@ -42,7 +49,7 @@ describe('TraceTimeline', () => {
 
     expect(screen.getByText('Iteration 1')).toBeInTheDocument();
     expect(screen.getByText('Checking the time.')).toBeInTheDocument();
-    expect(screen.getByText('get_time')).toBeInTheDocument();
+    expect(within(screen.getByTestId('tool-call')).getByText('get_time')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: /get_time running/i })).toBeInTheDocument();
     expect(screen.getByText('$0.0012')).toBeInTheDocument();
   });
@@ -92,6 +99,24 @@ describe('TraceTimeline', () => {
     expect(screen.getByText('Iteration 2')).toBeInTheDocument();
     expect(screen.getByText('2 iterations')).toBeInTheDocument();
     expect(screen.getByText('$0.0022')).toBeInTheDocument();
+  });
+
+  it('names the tools the run could reach, so an unused tool is visibly available', () => {
+    render(<TraceTimeline events={traceFixture()} live />);
+    expect(screen.getByText(/1 tool available/)).toBeInTheDocument();
+    expect(screen.getByTestId('available-tools')).toHaveTextContent('get_time');
+  });
+
+  it('says outright when a run had no tools at all', () => {
+    const events: TraceEvent[] = [
+      {
+        seq: 1,
+        event: { type: 'run_started', model: { provider: 'fake', modelId: 's' }, tools: [] },
+      },
+      { seq: 2, event: { type: 'iteration_started', iteration: 0 } },
+    ];
+    render(<TraceTimeline events={events} live />);
+    expect(screen.getByText(/No tools attached/)).toBeInTheDocument();
   });
 
   it('renders an error banner for failed runs', () => {

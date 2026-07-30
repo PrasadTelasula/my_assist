@@ -33,6 +33,9 @@ export const agentEventSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('run_started'),
     model: modelRefSchema,
+    // Names of every tool the run may call. A run that calls nothing is
+    // otherwise indistinguishable from a run that had nothing to call.
+    tools: z.array(z.string()),
   }),
   z.object({
     type: z.literal('iteration_started'),

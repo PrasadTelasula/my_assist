@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { registerFakeModel } from '@/core/model-registry';
 import { db } from '@/server/db/client';
 import { agents, messages, runs } from '@/server/db/schema';
+import { setAgentTools } from '@/server/agents';
 import { createThread, postUserMessage } from '@/server/chat';
 import { listRunEventsAfter } from '@/server/runs/event-store';
 import { runManager } from '@/server/runs/run-manager';
+import { createTool } from '@/server/tools';
 
 import { resetDomainTables } from '../fixtures/reset-db';
 import { scriptedModel } from '../fixtures/scripted-model';
@@ -23,6 +25,13 @@ async function fakeAgent() {
     .returning();
   return agent!;
 }
+
+const ECHO_TOOL = `
+export const schema = { type: 'object', properties: {}, required: [] };
+export default async function run() {
+  return { at: 'noon' };
+}
+`;
 
 describe('chat runs', () => {
   beforeEach(async () => {
@@ -67,6 +76,46 @@ describe('chat runs', () => {
     expect(stored.map((m) => m.role)).toEqual(['user', 'assistant']);
     expect(stored[1]!.content).toBe('All done.');
     expect(stored[1]!.runId).toBe(runId);
+  });
+
+  it('records which tools a run could reach, whether or not it used them', async () => {
+    // A run that never calls a tool is otherwise indistinguishable in the
+    // trace from a run that had none to call.
+    registerFakeModel(() => scriptedModel([{ text: 'No tool needed.', toolCalls: [] }]));
+
+    const bare = await fakeAgent();
+    const bareRun = await postUserMessage({
+      threadId: (await createThread({ agentId: bare.id, title: 'bare' })).id,
+      text: 'hello',
+    });
+    await bareRun.done;
+    const [bareStart] = await listRunEventsAfter(bareRun.runId, 0);
+    expect(bareStart!.payload).toMatchObject({ tools: [] });
+
+    const tool = await createTool({
+      name: 'clock',
+      description: 'Tells the time',
+      tsCode: ECHO_TOOL,
+      permissions: { net: false },
+    });
+    const equipped = await db
+      .insert(agents)
+      .values({
+        name: 'Equipped',
+        systemPrompt: 'test prompt',
+        modelProvider: 'fake',
+        modelId: 'scripted',
+      })
+      .returning();
+    await setAgentTools(equipped[0]!.id, [tool.id]);
+
+    const armed = await postUserMessage({
+      threadId: (await createThread({ agentId: equipped[0]!.id, title: 'armed' })).id,
+      text: 'hello',
+    });
+    await armed.done;
+    const [armedStart] = await listRunEventsAfter(armed.runId, 0);
+    expect(armedStart!.payload).toMatchObject({ tools: ['clock'] });
   });
 
   it('marks a run failed when the model errors', async () => {

@@ -11,6 +11,7 @@ type ToolCall = Extract<AgentEvent, { type: 'tool_call' }>;
 type ToolResult = Extract<AgentEvent, { type: 'tool_result' }>;
 type RunFinished = Extract<AgentEvent, { type: 'run_finished' }>;
 type RunError = Extract<AgentEvent, { type: 'run_error' }>;
+type RunStarted = Extract<AgentEvent, { type: 'run_started' }>;
 
 interface Iteration {
   iteration: number;
@@ -20,10 +21,12 @@ interface Iteration {
 
 function groupByIteration(events: TraceEvent[]): {
   iterations: Iteration[];
+  started?: RunStarted;
   finished?: RunFinished;
   error?: RunError;
 } {
   const iterations: Iteration[] = [];
+  let started: RunStarted | undefined;
   let finished: RunFinished | undefined;
   let error: RunError | undefined;
 
@@ -52,10 +55,30 @@ function groupByIteration(events: TraceEvent[]): {
         error = event;
         break;
       case 'run_started':
+        started = event;
         break;
     }
   }
-  return { iterations, finished, error };
+  return { iterations, started, finished, error };
+}
+
+/** What the model was actually offered — the first question of any trace. */
+function AvailableTools({ tools }: { tools: string[] }) {
+  if (tools.length === 0) {
+    return (
+      <p className="text-warning border-warning/30 bg-warning/10 rounded-control border px-2.5 py-2 text-[11px] leading-relaxed">
+        No tools attached — this agent can only talk. Attach one on its agent page.
+      </p>
+    );
+  }
+  return (
+    <p className="text-ink-muted text-[11px] leading-relaxed">
+      {tools.length} tool{tools.length === 1 ? '' : 's'} available:{' '}
+      <span data-testid="available-tools" className="text-ink font-mono">
+        {tools.join(', ')}
+      </span>
+    </p>
+  );
 }
 
 /**
@@ -63,7 +86,7 @@ function groupByIteration(events: TraceEvent[]): {
  * it happens. Shared by the chat side panel, run detail, and the task drawer.
  */
 export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: boolean }) {
-  const { iterations, finished, error } = groupByIteration(events);
+  const { iterations, started, finished, error } = groupByIteration(events);
 
   if (events.length === 0) {
     return (
@@ -75,6 +98,7 @@ export function TraceTimeline({ events, live }: { events: TraceEvent[]; live: bo
 
   return (
     <div className="flex flex-col gap-4 p-4" data-testid="trace-timeline">
+      {started ? <AvailableTools tools={started.tools} /> : null}
       {iterations.map(({ iteration, response, calls }) => (
         // The rail makes a multi-iteration run read as one thread, not a pile of boxes.
         <section

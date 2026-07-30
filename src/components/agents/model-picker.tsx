@@ -48,7 +48,9 @@ export function ModelPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
+      {/* Selects size to their longest option; without a cap they starve the
+          model-id field, which is the one thing you actually type into. */}
+      <div className="flex flex-wrap gap-2">
         <Select
           value={connectionId ?? ''}
           onChange={(e) => {
@@ -57,7 +59,7 @@ export function ModelPicker({
             onChange({ connectionId: id, provider: picked?.kind ?? provider, modelId });
           }}
           aria-label="Connection"
-          className="w-auto"
+          className="w-auto max-w-56 min-w-0 shrink"
         >
           <option value="">Environment keys</option>
           {connections?.map((c) => (
@@ -72,7 +74,7 @@ export function ModelPicker({
             value={provider}
             onChange={(e) => onChange({ connectionId: null, provider: e.target.value, modelId })}
             aria-label="Provider"
-            className="w-auto"
+            className="w-auto max-w-44 min-w-0 shrink"
           >
             {BUILT_IN_PROVIDERS.map((p) => (
               <option key={p.value} value={p.value}>
@@ -88,7 +90,7 @@ export function ModelPicker({
           placeholder={placeholder}
           aria-label="Model id"
           list={probe?.models.length ? 'discovered-models' : undefined}
-          className="flex-1 font-mono"
+          className="min-w-48 flex-1 font-mono"
         />
         {probe?.models.length ? (
           <datalist id="discovered-models">

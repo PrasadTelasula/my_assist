@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { asc, count, eq } from 'drizzle-orm';
 
-import { type Agent, agents, agentTools } from '@/server/db/schema';
+import { type Agent, agents, agentTools, providerConnections } from '@/server/db/schema';
 import { db } from '@/server/db/client';
 
 interface AgentInput {
@@ -12,6 +12,29 @@ interface AgentInput {
   maxIterations?: number;
   costCeilingUsd?: number;
   providerConnectionId?: string | null;
+}
+
+/**
+ * The agent list carries `toolCount` because "why didn't it call my tool?" is
+ * almost always "it has none", and that has to be answerable at a glance.
+ */
+export async function listAgents() {
+  return db
+    .select({
+      id: agents.id,
+      name: agents.name,
+      description: agents.description,
+      modelProvider: agents.modelProvider,
+      modelId: agents.modelId,
+      providerConnectionId: agents.providerConnectionId,
+      connectionName: providerConnections.name,
+      toolCount: count(agentTools.toolId),
+    })
+    .from(agents)
+    .leftJoin(providerConnections, eq(agents.providerConnectionId, providerConnections.id))
+    .leftJoin(agentTools, eq(agentTools.agentId, agents.id))
+    .groupBy(agents.id, providerConnections.name)
+    .orderBy(asc(agents.name));
 }
 
 export async function createAgent(input: AgentInput): Promise<Agent> {

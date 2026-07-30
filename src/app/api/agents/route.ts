@@ -1,9 +1,6 @@
-import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { createAgent } from '@/server/agents';
-import { db } from '@/server/db/client';
-import { agents, providerConnections } from '@/server/db/schema';
+import { createAgent, listAgents } from '@/server/agents';
 
 const createAgentSchema = z.object({
   name: z.string().min(1).max(100),
@@ -25,20 +22,7 @@ const createAgentSchema = z.object({
 });
 
 export async function GET() {
-  const rows = await db
-    .select({
-      id: agents.id,
-      name: agents.name,
-      description: agents.description,
-      modelProvider: agents.modelProvider,
-      modelId: agents.modelId,
-      providerConnectionId: agents.providerConnectionId,
-      connectionName: providerConnections.name,
-    })
-    .from(agents)
-    .leftJoin(providerConnections, eq(agents.providerConnectionId, providerConnections.id))
-    .orderBy(asc(agents.name));
-  return Response.json(rows);
+  return Response.json(await listAgents());
 }
 
 export async function POST(request: Request) {

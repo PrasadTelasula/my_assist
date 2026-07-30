@@ -44,6 +44,7 @@ export interface AgentListItem {
   providerConnectionId: string | null;
   /** Null when the agent uses environment credentials for its provider. */
   connectionName: string | null;
+  toolCount: number;
 }
 
 export interface AgentDetail extends AgentListItem {

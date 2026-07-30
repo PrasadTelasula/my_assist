@@ -122,6 +122,17 @@ export default function AgentsPage() {
                     {agent.connectionName}
                   </span>
                 ) : null}
+                <span
+                  className={`rounded-control px-2 py-0.5 text-[11px] ${
+                    agent.toolCount
+                      ? 'bg-surface-muted text-ink-muted'
+                      : 'bg-warning/10 text-warning'
+                  }`}
+                >
+                  {agent.toolCount
+                    ? `${agent.toolCount} tool${agent.toolCount === 1 ? '' : 's'}`
+                    : 'no tools'}
+                </span>
               </div>
             </Link>
           ))}

@@ -1,7 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { createAgent, getAgentWithTools, setAgentTools, updateAgent } from '@/server/agents';
+import {
+  createAgent,
+  getAgentWithTools,
+  listAgents,
+  setAgentTools,
+  updateAgent,
+} from '@/server/agents';
 import { db } from '@/server/db/client';
 import { agents, agentTools, tools, toolVersions } from '@/server/db/schema';
 import { createTool } from '@/server/tools';
@@ -65,5 +71,38 @@ describe('agents', () => {
 
     await db.delete(agentTools).where(eq(agentTools.agentId, agent.id));
     await db.delete(agents).where(eq(agents.id, agent.id));
+  });
+
+  it('reports how many tools each agent carries, so a toolless agent is obvious', async () => {
+    const armed = await createAgent({
+      name: 'Armed',
+      systemPrompt: 's',
+      modelProvider: 'fake',
+      modelId: 'scripted',
+    });
+    await createAgent({
+      name: 'Bare',
+      systemPrompt: 's',
+      modelProvider: 'fake',
+      modelId: 'scripted',
+    });
+    const tool = await createTool({
+      name: 'tool_c',
+      description: 'c',
+      tsCode: TOOL,
+      permissions: { net: false },
+    });
+    await setAgentTools(armed.id, [tool.id]);
+
+    const listed = await listAgents();
+    const mine = listed.filter((a) => a.name === 'Armed' || a.name === 'Bare');
+    expect(mine.map((a) => [a.name, a.toolCount])).toEqual([
+      ['Armed', 1],
+      ['Bare', 0],
+    ]);
+
+    await db.delete(agentTools).where(eq(agentTools.agentId, armed.id));
+    await db.delete(agents).where(eq(agents.name, 'Armed'));
+    await db.delete(agents).where(eq(agents.name, 'Bare'));
   });
 });

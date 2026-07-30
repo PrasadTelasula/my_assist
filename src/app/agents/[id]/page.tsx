@@ -158,6 +158,13 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
 
         <section className={`${cardClass()} flex flex-col gap-2 p-5`}>
           <span className="text-ink text-sm font-semibold">Tools</span>
+          {allTools?.length && toolIds.length === 0 ? (
+            <p className="text-warning border-warning/30 bg-warning/10 rounded-control mb-1 border px-2.5 py-2 text-xs leading-relaxed">
+              Nothing attached — this agent is sent no tool list at all, so asking it to
+              &ldquo;use&rdquo; a tool by name will only get you an apology. Tick one below and
+              save.
+            </p>
+          ) : null}
           {allTools?.length ? (
             <ul className="flex flex-col gap-1">
               {allTools.map((tool) => (

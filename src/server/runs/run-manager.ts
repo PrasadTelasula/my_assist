@@ -110,7 +110,7 @@ class RunManager {
       appendRunEvent(runId, ++seq, event);
 
     try {
-      await append({ type: 'run_started', model: modelRef });
+      await append({ type: 'run_started', model: modelRef, tools: tools.map((t) => t.name) });
 
       const loop = runAgentLoop({
         model,
@@ -174,5 +174,7 @@ class RunManager {
 }
 
 // globalThis-cached: dev HMR must not spawn a second manager with its own state.
+// The flip side is that edits to this file need a dev-server restart to take
+// effect — HMR swaps the module but the cached instance keeps the old methods.
 const g = globalThis as unknown as { __runManager?: RunManager };
 export const runManager = (g.__runManager ??= new RunManager());

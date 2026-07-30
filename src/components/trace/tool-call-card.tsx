@@ -32,6 +32,7 @@ function Json({ value }: { value: unknown }) {
 export function ToolCallCard({ call, result }: { call: ToolCall; result?: ToolResult }) {
   return (
     <div
+      data-testid="tool-call"
       className={`rounded-control shadow-card border p-2.5 ${
         result?.isError ? 'border-destructive/40 bg-destructive/5' : 'border-edge bg-surface'
       }`}
